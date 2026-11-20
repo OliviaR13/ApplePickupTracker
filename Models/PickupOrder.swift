@@ -74,12 +74,36 @@ enum PickupStatus: String, Codable, CaseIterable, Comparable {
 
     static func detect(in text: String) -> PickupStatus {
         let value = text.lowercased()
-        if value.contains("ready for pickup") || value.contains("your item is ready") || value.contains("ready to pick up") { return .readyForPickup }
-        if value.contains("picked up") || value.contains("collected your order") { return .pickedUp }
-        if value.contains("cancelled") || value.contains("canceled") { return .cancelled }
-        if value.contains("shipping to store") || value.contains("on its way to the store") { return .shippingToStore }
-        if value.contains("processing") || value.contains("preparing your order") || value.contains("being prepared") { return .processing }
-        if value.contains("order confirmation") || value.contains("we've received your order") || value.contains("we have received your order") { return .ordered }
+            .replacingOccurrences(of: " ", with: "")
+            .replacingOccurrences(of: "\\n", with: "")
+
+        // Terminal states take precedence over earlier status wording in the same email.
+        if value.contains("pickedup") || value.contains("collectedyourorder")
+            || value.contains("已取貨") || value.contains("已領取") || value.contains("訂單已取貨") {
+            return .pickedUp
+        }
+        if value.contains("cancelled") || value.contains("canceled")
+            || value.contains("已取消") || value.contains("訂單取消") {
+            return .cancelled
+        }
+        if value.contains("readyforpickup") || value.contains("youritemisready") || value.contains("readytopickup")
+            || value.contains("已備妥") || value.contains("可供於零售店營業時間內取貨")
+            || value.contains("可供取貨") || value.contains("可以取貨") {
+            return .readyForPickup
+        }
+        if value.contains("shippingtostore") || value.contains("onitswaytothestore")
+            || value.contains("運送至零售店") || value.contains("正在運送到零售店") {
+            return .shippingToStore
+        }
+        if value.contains("processing") || value.contains("preparingyourorder") || value.contains("beingprepared")
+            || value.contains("正在處理") || value.contains("正在準備") {
+            return .processing
+        }
+        if value.contains("orderconfirmation") || value.contains("we'vereceivedyourorder")
+            || value.contains("wehavereceivedyourorder") || value.contains("訂單確認")
+            || value.contains("已收到你的訂單") || value.contains("已收到訂單") {
+            return .ordered
+        }
         return .unknown
     }
 }
