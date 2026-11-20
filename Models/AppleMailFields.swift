@@ -1,5 +1,17 @@
 import Foundation
 
+extension PickupOrder {
+    /// Store line safe to show and to match against Apple's retail list.
+    /// Kept out of PickupOrder.swift because the widget target compiles that file alone.
+    var recognizedStoreName: String? {
+        let name = storeName.trimmingCharacters(in: .whitespacesAndNewlines)
+        guard !name.isEmpty, name != "零售店", name != "Store Pickup", !AppleMailFields.isInstruction(name) else { return nil }
+        return name
+    }
+
+    var displayStoreName: String { recognizedStoreName ?? "未识别门店" }
+}
+
 enum AppleMailFields {
     /// Turns Apple HTML mail into lines. Break tags become newlines before the remaining tags are removed.
     static func plain(_ raw: String) -> String {

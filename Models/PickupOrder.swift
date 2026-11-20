@@ -23,15 +23,6 @@ struct PickupOrder: Codable, Identifiable, Hashable {
         self.sourceMessageID = sourceMessageID
         history.append(OrderEvent(status: newStatus, date: date))
     }
-
-    /// Store line safe to show and to match against Apple's retail list.
-    var recognizedStoreName: String? {
-        let name = storeName.trimmingCharacters(in: .whitespacesAndNewlines)
-        guard !name.isEmpty, name != "零售店", name != "Store Pickup", !AppleMailFields.isInstruction(name) else { return nil }
-        return name
-    }
-
-    var displayStoreName: String { recognizedStoreName ?? "未识别门店" }
 }
 
 struct OrderEvent: Codable, Hashable, Identifiable {
