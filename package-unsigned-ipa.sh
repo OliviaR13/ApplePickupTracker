@@ -16,13 +16,21 @@ xcodebuild -project ApplePickupTracker.xcodeproj \
   CODE_SIGNING_ALLOWED=NO \
   build
 
-APP="$DERIVED/Build/Products/Release-iphoneos/Pickup Tracker.app"
+APP="$DERIVED/Build/Products/Release-iphoneos/ApplePickupTracker.app"
 [ -d "$APP" ] || { echo "Build succeeded but app product was not found: $APP" >&2; exit 1; }
+[ -f "$APP/Info.plist" ] || { echo "Missing app Info.plist" >&2; exit 1; }
+[ -f "$APP/ApplePickupTracker" ] || { echo "Missing app executable" >&2; exit 1; }
+
 PAYLOAD="$ROOT/build/Payload"
-rm -rf "$PAYLOAD"
+rm -rf "$PAYLOAD" "$ROOT/build/ApplePickupTracker-unsigned.ipa"
 mkdir -p "$PAYLOAD"
 cp -R "$APP" "$PAYLOAD/"
-rm -f "$ROOT/build/ApplePickupTracker-unsigned.ipa"
-(cd "$ROOT/build" && /usr/bin/zip -qr ApplePickupTracker-unsigned.ipa Payload)
-echo "Created: $ROOT/build/ApplePickupTracker-unsigned.ipa"
-echo "Import this unsigned IPA into AltStore/Sideloadly and sign it with your Apple Personal Team."
+
+# Use Apple's macOS archive utility to create a conventional IPA (ZIP with Payload at root).
+(cd "$ROOT/build" && /usr/bin/ditto -c -k --sequesterRsrc --keepParent Payload ApplePickupTracker-unsigned.ipa)
+
+# Validate the archive and its required bundle layout before publishing the artifact.
+unzip -t "$ROOT/build/ApplePickupTracker-unsigned.ipa"
+unzip -Z1 "$ROOT/build/ApplePickupTracker-unsigned.ipa" | grep -q '^Payload/ApplePickupTracker.app/Info.plist$'
+unzip -Z1 "$ROOT/build/ApplePickupTracker-unsigned.ipa" | grep -q '^Payload/ApplePickupTracker.app/ApplePickupTracker$'
+echo "Created and validated: $ROOT/build/ApplePickupTracker-unsigned.ipa"
