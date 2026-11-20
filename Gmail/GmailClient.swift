@@ -102,16 +102,3 @@ final class GmailClient {
     }
 }
 
-enum GmailError: LocalizedError {
-    case requestFailed
-    case apiFailure(status: Int, message: String)
-
-    var errorDescription: String? {
-        switch self {
-        case .requestFailed:
-            return "无法连接 Gmail。请检查网络后重试。"
-        case let .apiFailure(status, message):
-            return "Gmail API 错误（HTTP \(status)）：\(message)"
-        }
-    }
-}
