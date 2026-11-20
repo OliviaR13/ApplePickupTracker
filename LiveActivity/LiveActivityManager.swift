@@ -16,7 +16,7 @@ final class LiveActivityManager {
         let state = contentState(for: order)
         let content = ActivityContent(state: state, staleDate: Calendar.current.date(byAdding: .hour, value: 12, to: Date()))
         if let existing = activity(for: order.orderNumber) {
-            if isTerminal(order.status) {
+            if Self.isTerminal(order.status) {
                 await existing.end(content, dismissalPolicy: .after(Date().addingTimeInterval(60 * 60)))
                 return .ended
             }
@@ -79,7 +79,4 @@ final class LiveActivityManager {
         status == .pickedUp || status == .cancelled
     }
 
-    private func isTerminal(_ status: PickupStatus) -> Bool {
-        Self.isTerminal(status)
-    }
 }
