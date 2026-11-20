@@ -35,7 +35,7 @@ private struct GraphMessagePage: Decodable {
     }
 }
 
-final class OutlookClient {
+private extension ISO8601DateFormatter {\n    static let withFractionalSeconds: ISO8601DateFormatter = {\n        let formatter = ISO8601DateFormatter()\n        formatter.formatOptions = [.withInternetDateTime, .withFractionalSeconds]\n        return formatter\n    }()\n}\n\nfinal class OutlookClient {
     private let oauth: OutlookOAuth
     init(oauth: OutlookOAuth) { self.oauth = oauth }
 
@@ -56,7 +56,7 @@ final class OutlookClient {
         while let url = nextURL, scanned < 1000 {
             var request = URLRequest(url: url)
             request.setValue("Bearer \(token)", forHTTPHeaderField: "Authorization")
-            request.setValue("text", forHTTPHeaderField: "Prefer")
+            request.setValue('outlook.body-content-type="text"', forHTTPHeaderField: "Prefer")
             request.timeoutInterval = 30
             let (data, response) = try await URLSession.shared.data(for: request)
             try Self.validate(response, data: data)
@@ -75,7 +75,10 @@ final class OutlookClient {
                 guard let order = Self.firstMatch(#"(?i)(?:order\s*(?:number|#|no\.?)[\s:：#]*)\s*([A-Z0-9-]{8,})|\b(W\d{8,})\b"#, in: content) else { continue }
                 let status = PickupStatus.detect(in: content)
                 guard status != .unknown else { continue }
-                let date = message.receivedDateTime.flatMap { ISO8601DateFormatter().date(from: $0) } ?? Date()
+                let date = message.receivedDateTime.flatMap { value -> Date? in
+                    ISO8601DateFormatter().date(from: value)
+                    ?? ISO8601DateFormatter.withFractionalSeconds.date(from: value)
+                } ?? Date()
                 parsed.append(ParsedPickupMail(orderNumber: order, productName: Self.productName(from: content),
                                                storeName: Self.storeName(from: content), status: status,
                                                messageID: message.id, date: date))
@@ -111,7 +114,11 @@ final class OutlookClient {
 
     private static func productName(from text: String) -> String {
         let lines = text.components(separatedBy: .newlines).map { $0.trimmingCharacters(in: .whitespacesAndNewlines) }.filter { !$0.isEmpty }
-        return lines.first(where: { ["iPhone", "MacBook", "iPad", "Apple Watch"].contains(where: { $0.localizedCaseInsensitiveContains($0) }) }) ?? "Apple Store Order"
+        return lines.first(where: { line in
+            ["iPhone", "MacBook", "iPad", "Apple Watch"].contains(where: { keyword in
+                line.localizedCaseInsensitiveContains(keyword)
+            })
+        }) ?? "Apple Store Order"
     }
 
     private static func storeName(from text: String) -> String {
