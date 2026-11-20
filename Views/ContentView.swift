@@ -24,6 +24,15 @@ struct ContentView: View {
                             ForEach(store.orders) { order in
                                 NavigationLink(value: order) { OrderRow(order: order) }
                                     .listRowInsets(EdgeInsets(top: 10, leading: 16, bottom: 10, trailing: 16))
+                                    .swipeActions(edge: .trailing, allowsFullSwipe: false) {
+                                        Button(role: .destructive) {
+                                            store.deleteOrder(orderNumber: order.orderNumber)
+                                            NotificationManager.shared.removePending(orderNumber: order.orderNumber)
+                                            Task { await LiveActivityManager().end(orderNumber: order.orderNumber) }
+                                        } label: {
+                                            Label("删除", systemImage: "trash")
+                                        }
+                                    }
                             }
                         } header: {
                             HStack {
