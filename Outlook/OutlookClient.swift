@@ -63,7 +63,7 @@ final class OutlookClient {
         while let url = nextURL, scanned < 1000 {
             var request = URLRequest(url: url)
             request.setValue("Bearer \(token)", forHTTPHeaderField: "Authorization")
-            request.setValue('outlook.body-content-type="text"', forHTTPHeaderField: "Prefer")
+            request.setValue("outlook.body-content-type=\"text\"", forHTTPHeaderField: "Prefer")
             request.timeoutInterval = 30
             let (data, response) = try await URLSession.shared.data(for: request)
             try Self.validate(response, data: data)
@@ -73,8 +73,7 @@ final class OutlookClient {
                 let sender = message.from?.emailAddress?.address?.lowercased() ?? ""
                 guard Self.isAppleSender(sender) else { continue }
                 appleCount += 1
-                let content = (message.subject ?? "") + "
-" + (message.body?.content ?? "")
+                let content = (message.subject ?? "") + "\n" + (message.body?.content ?? "")
                     .replacingOccurrences(of: "<[^>]+>", with: " ", options: .regularExpression)
                     .replacingOccurrences(of: "&nbsp;", with: " ")
                     .replacingOccurrences(of: "&amp;", with: "&")
