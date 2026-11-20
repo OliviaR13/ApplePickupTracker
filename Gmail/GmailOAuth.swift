@@ -9,8 +9,8 @@ final class GmailOAuth: NSObject, ObservableObject, ASWebAuthenticationPresentat
     @Published private(set) var isConnected = false
     @Published private(set) var accountEmail: String?
 
-    private let clientID = "YOUR_GOOGLE_IOS_OAUTH_CLIENT_ID"
-    private let redirectScheme = "com.googleusercontent.apps.YOUR_REVERSED_CLIENT_ID"
+    private let clientID = "963422500853-ngfp095nepkeklena1ul1vtpp2sddt44.apps.googleusercontent.com"
+    private let redirectScheme = "com.googleusercontent.apps.963422500853-ngfp095nepkeklena1ul1vtpp2sddt44"
     private let scope = "https://www.googleapis.com/auth/gmail.readonly"
     private var session: ASWebAuthenticationSession?
     private var verifier = ""
