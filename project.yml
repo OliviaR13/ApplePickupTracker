@@ -17,7 +17,7 @@ targets:
         embed: true
     sources:
       - path: App
-      - path: Gmail
+      - path: Outlook
       - path: Models
       - path: Storage
       - path: Tracking
