@@ -148,18 +148,48 @@ private struct OrderRow: View {
     let order: PickupOrder
     var body: some View {
         HStack(spacing: 14) {
-            Image(systemName: "bag.fill")
-                .font(.title2).foregroundStyle(order.status == .readyForPickup ? .green : .primary)
-                .frame(width: 48, height: 48)
-                .background(.quaternary, in: RoundedRectangle(cornerRadius: 14))
+            StorePhotoView(storeName: order.storeName, height: 58, cornerRadius: 16)
             VStack(alignment: .leading, spacing: 5) {
-                Text(order.productName).font(.headline).lineLimit(2)
-                Text(order.storeName).font(.subheadline).foregroundStyle(.secondary).lineLimit(2)
-                Text(order.status.title).font(.subheadline.weight(.semibold))
-                    .foregroundStyle(order.status == .readyForPickup ? .green : .secondary)
+                Text(order.productName)
+                    .font(.headline)
+                    .lineLimit(2)
+                    .minimumScaleFactor(0.85)
+                Text(order.storeName)
+                    .font(.subheadline)
+                    .foregroundStyle(.secondary)
+                    .lineLimit(2)
+                StatusBadge(status: order.status)
             }
             Spacer(minLength: 4)
-            Image(systemName: "chevron.right").font(.caption.weight(.semibold)).foregroundStyle(.tertiary)
-        }.padding(.vertical, 4).contentShape(Rectangle())
+        }
+        .padding(.vertical, 4)
+        .contentShape(Rectangle())
+        .accessibilityElement(children: .combine)
+    }
+}
+
+struct StatusBadge: View {
+    let status: PickupStatus
+    var body: some View {
+        Label(status.title, systemImage: status.symbolName)
+            .font(.caption.weight(.semibold))
+            .foregroundStyle(status.tint)
+            .padding(.horizontal, 8)
+            .padding(.vertical, 4)
+            .background(status.tint.opacity(0.14), in: Capsule())
+            .lineLimit(1)
+            .minimumScaleFactor(0.8)
+    }
+}
+
+extension PickupStatus {
+    var tint: Color {
+        switch self {
+        case .readyForPickup: .green
+        case .shippingToStore: .blue
+        case .processing: .orange
+        case .cancelled: .red
+        case .ordered, .pickedUp, .unknown: .secondary
+        }
     }
 }

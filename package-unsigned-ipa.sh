@@ -31,18 +31,25 @@ if [ "$launch_name" != "LaunchScreen" ]; then
   echo "Built Info.plist UILaunchStoryboardName is '${launch_name}', expected LaunchScreen." >&2
   exit 1
 fi
-for key in UILaunchStoryboardName~iphone UILaunchStoryboardName~ipad; do
-  variant="$(/usr/libexec/PlistBuddy -c "Print :${key}" "$APP/Info.plist" 2>/dev/null || true)"
-  if [ "$variant" != "LaunchScreen" ]; then
-    echo "Built Info.plist ${key} is '${variant}', expected LaunchScreen." >&2
-    exit 1
-  fi
-done
-if ! /usr/libexec/PlistBuddy -c 'Print :UILaunchScreen' "$APP/Info.plist" >/dev/null 2>&1; then
-  echo "Built Info.plist is missing UILaunchScreen." >&2
+if ! /usr/libexec/PlistBuddy -c 'Print :UILaunchScreen:UIImageRespectsSafeAreaInsets' "$APP/Info.plist" >/dev/null 2>&1; then
+  echo "Built Info.plist is missing a non-empty UILaunchScreen dictionary." >&2
   exit 1
 fi
-for key in UISupportedInterfaceOrientations UISupportedInterfaceOrientations~iphone UISupportedInterfaceOrientations~ipad; do
+schemes="$(/usr/libexec/PlistBuddy -c 'Print :CFBundleURLTypes' "$APP/Info.plist" 2>/dev/null || true)"
+if ! printf '%s\n' "$schemes" | grep -q 'msauth.com.example.ApplePickupTracker'; then
+  echo "Built Info.plist lost the Outlook URL scheme." >&2
+  exit 1
+fi
+if ! /usr/libexec/PlistBuddy -c 'Print :UIBackgroundModes' "$APP/Info.plist" 2>/dev/null | grep -q fetch; then
+  echo "Built Info.plist is missing UIBackgroundModes fetch." >&2
+  exit 1
+fi
+version="$(/usr/libexec/PlistBuddy -c 'Print :CFBundleVersion' "$APP/Info.plist" 2>/dev/null || true)"
+if [ -z "$version" ] || [ "$version" = "null" ]; then
+  echo "Built Info.plist CFBundleVersion is empty." >&2
+  exit 1
+fi
+for key in UISupportedInterfaceOrientations "UISupportedInterfaceOrientations~iphone" "UISupportedInterfaceOrientations~ipad"; do
   orientations="$(/usr/libexec/PlistBuddy -c "Print :${key}" "$APP/Info.plist")"
   for orientation in \
     UIInterfaceOrientationPortrait \
