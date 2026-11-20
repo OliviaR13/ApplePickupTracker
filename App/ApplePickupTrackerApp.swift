@@ -4,10 +4,10 @@ import BackgroundTasks
 @main
 struct ApplePickupTrackerApp: App {
     @StateObject private var store = OrderStore()
-    @StateObject private var oauth = GmailOAuth()
+    @StateObject private var oauth = OutlookOAuth()
     @Environment(\.scenePhase) private var scenePhase
 
-    private var syncService: SyncService { SyncService(gmail: GmailClient(oauth: oauth), store: store) }
+    private var syncService: SyncService { SyncService(outlook: OutlookClient(oauth: oauth), store: store) }
 
     var body: some Scene {
         WindowGroup {
@@ -18,7 +18,7 @@ struct ApplePickupTrackerApp: App {
                     await NotificationManager.shared.requestPermission()
                     BackgroundSync.shared.register {
                         do { try await self.syncService.sync() }
-                        catch { self.store.setSyncResult("Background sync failed") }
+                        catch { self.store.setSyncResult("后台同步失败：\\(error.localizedDescription)") }
                     }
                 }
                 .onChange(of: scenePhase) { _, phase in
