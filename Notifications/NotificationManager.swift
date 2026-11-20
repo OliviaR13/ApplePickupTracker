@@ -26,5 +26,6 @@ final class NotificationManager {
 
     func removeAllPending() {
         UNUserNotificationCenter.current().removeAllPendingNotificationRequests()
+        UNUserNotificationCenter.current().removeAllDeliveredNotifications()
     }
 }
