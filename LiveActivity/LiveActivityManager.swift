@@ -23,7 +23,7 @@ final class LiveActivityManager {
             await existing.update(content)
             return .updated
         }
-        guard !isTerminal(order.status) else { return .ended }
+        guard !Self.isTerminal(order.status) else { return .ended }
         let attributes = PickupAttributes(orderNumber: order.orderNumber, productName: order.productName)
         do {
             _ = try Activity.request(attributes: attributes, content: content, pushType: nil)
