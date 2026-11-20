@@ -6,6 +6,7 @@ struct PickupOrder: Codable, Identifiable, Hashable {
     var productName: String
     var storeName: String
     var pickupNote: String?
+    var recognitionConfidence: Double?
     var status: PickupStatus
     var lastUpdated: Date
     var sourceMessageID: String
@@ -26,7 +27,7 @@ struct PickupOrder: Codable, Identifiable, Hashable {
 }
 
 struct OrderEvent: Codable, Hashable, Identifiable {
-    var id: String { "\(status.rawValue)-\(date.timeIntervalSince1970)" }
+    var id: String { "\\(status.rawValue)-\\(date.timeIntervalSince1970)" }
     let status: PickupStatus
     let date: Date
 }
@@ -90,7 +91,6 @@ enum PickupStatus: String, Codable, CaseIterable, Comparable {
             .replacingOccurrences(of: " ", with: "")
             .replacingOccurrences(of: "\\n", with: "")
 
-        // Terminal states take precedence over earlier status wording in the same email.
         if value.contains("pickedup") || value.contains("collectedyourorder")
             || value.contains("已取貨") || value.contains("已領取") || value.contains("訂單已取貨") {
             return .pickedUp
