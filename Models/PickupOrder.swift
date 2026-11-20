@@ -27,7 +27,7 @@ struct PickupOrder: Codable, Identifiable, Hashable {
 }
 
 struct OrderEvent: Codable, Hashable, Identifiable {
-    var id: String { "\\(status.rawValue)-\\(date.timeIntervalSince1970)" }
+    var id: String { "\(status.rawValue)-\(date.timeIntervalSince1970)" }
     let status: PickupStatus
     let date: Date
 }
@@ -89,7 +89,7 @@ enum PickupStatus: String, Codable, CaseIterable, Comparable {
     static func detect(in text: String) -> PickupStatus {
         let value = text.lowercased()
             .replacingOccurrences(of: " ", with: "")
-            .replacingOccurrences(of: "\\n", with: "")
+            .replacingOccurrences(of: "\n", with: "")
 
         if value.contains("pickedup") || value.contains("collectedyourorder")
             || value.contains("已取貨") || value.contains("已領取") || value.contains("訂單已取貨") {
