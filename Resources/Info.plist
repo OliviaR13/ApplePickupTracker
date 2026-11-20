@@ -16,7 +16,26 @@
     <key>NSSupportsLiveActivities</key><true/>
     <key>NSUserNotificationUsageDescription</key><string>当 Apple Store 订单可以取货时通知你。</string>
     <key>UILaunchStoryboardName</key><string>LaunchScreen</string>
+    <key>UILaunchStoryboardName~iphone</key><string>LaunchScreen</string>
+    <key>UILaunchStoryboardName~ipad</key><string>LaunchScreen</string>
+    <key>UILaunchScreen</key>
+    <dict>
+        <key>UIImageRespectsSafeAreaInsets</key>
+        <false/>
+    </dict>
+    <key>UILaunchScreen~ipad</key>
+    <dict>
+        <key>UIImageRespectsSafeAreaInsets</key>
+        <false/>
+    </dict>
     <key>UISupportedInterfaceOrientations</key>
+    <array>
+        <string>UIInterfaceOrientationPortrait</string>
+        <string>UIInterfaceOrientationPortraitUpsideDown</string>
+        <string>UIInterfaceOrientationLandscapeLeft</string>
+        <string>UIInterfaceOrientationLandscapeRight</string>
+    </array>
+    <key>UISupportedInterfaceOrientations~iphone</key>
     <array>
         <string>UIInterfaceOrientationPortrait</string>
         <string>UIInterfaceOrientationPortraitUpsideDown</string>

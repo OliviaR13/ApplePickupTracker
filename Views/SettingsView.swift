@@ -34,7 +34,7 @@ struct SettingsView: View {
                     }
                 }
                 Section("隐私与权限") {
-                    Label("邮件内容仅在此 iPhone 上处理", systemImage: "iphone")
+                    Label("邮件内容仅在此设备上处理", systemImage: "iphone")
                     Label("订单数据保存在本机", systemImage: "lock.fill")
                     Label("Microsoft Graph：Mail.Read 只读权限", systemImage: "envelope.badge")
                 }
