@@ -19,9 +19,9 @@ final class NotificationManager {
     }
 
     func removePending(orderNumber: String) {
-        UNUserNotificationCenter.current().removePendingNotificationRequests(
-            withIdentifiers: ["pickup-ready-\(orderNumber)"]
-        )
+        let identifier = "pickup-ready-\(orderNumber)"
+        UNUserNotificationCenter.current().removePendingNotificationRequests(withIdentifiers: [identifier])
+        UNUserNotificationCenter.current().removeDeliveredNotifications(withIdentifiers: [identifier])
     }
 
     func removeAllPending() {
