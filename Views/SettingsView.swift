@@ -5,7 +5,7 @@ import UIKit
 struct SettingsView: View {
     @EnvironmentObject private var oauth: OutlookOAuth
     @EnvironmentObject private var store: OrderStore
-    @Environment(\\.dismiss) private var dismiss
+    @Environment(\.dismiss) private var dismiss
     let onSync: () async -> Void
     @State private var isWorking = false
     @State private var message: String?
@@ -59,10 +59,10 @@ struct SettingsView: View {
                     }
                 }
                 Section("订单数据管理") {
-                    LabeledContent("本地订单", value: "\\(store.orders.count) 条")
+                    LabeledContent("本地订单", value: "\(store.orders.count) 条")
                     Button {
                         do { exportURL = try store.makeExportFile() }
-                        catch { message = "导出失败：\\(error.localizedDescription)" }
+                        catch { message = "导出失败：\(error.localizedDescription)" }
                     } label: {
                         Label("导出订单为 JSON", systemImage: "square.and.arrow.up")
                     }
