@@ -135,7 +135,7 @@ enum AppleMailFields {
         let trimmed = line.trimmingCharacters(in: .whitespacesAndNewlines)
         guard isLocationValue(trimmed) else { return false }
         let lower = trimmed.lowercased()
-        if lower == "apple" || lower == "apple store" { return false }
+        if ["apple", "apple store", "apple store pickup", "store pickup"].contains(lower) { return false }
         if lower.hasPrefix("apple ") { return true }
         let hints = ["店", "廣場", "广场", "中心", "mall", "plaza", "centre", "center", "ifc"]
         return hints.contains { lower.contains($0) }
