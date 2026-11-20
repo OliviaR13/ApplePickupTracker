@@ -2,14 +2,17 @@ import Foundation
 
 @MainActor
 final class SyncService {
-    private let gmail: GmailClient
+    private let outlook: OutlookClient
     private let store: OrderStore
     private let activity = LiveActivityManager()
 
-    init(gmail: GmailClient, store: OrderStore) { self.gmail = gmail; self.store = store }
+    init(outlook: OutlookClient, store: OrderStore) {
+        self.outlook = outlook
+        self.store = store
+    }
 
     func sync() async throws {
-        let result = try await gmail.fetchAppleOrderMessages()
+        let result = try await outlook.fetchAppleOrderMessages()
         var newlyReady: [PickupOrder] = []
         for message in result.messages {
             let becameReady = store.upsert(orderNumber: message.orderNumber, product: message.productName, store: message.storeName,
@@ -27,9 +30,9 @@ final class SyncService {
 
         let summary: String
         if result.messages.isEmpty {
-            summary = "已连接 Gmail；检查了 \(result.scannedCount) 封邮件，其中 \(result.appleSenderCount) 封来自 Apple，但没有识别到取货订单。"
+            summary = "已连接 Outlook；检查了 \\(result.scannedCount) 封邮件，其中 \\(result.appleSenderCount) 封来自 Apple，但没有识别到取货订单。"
         } else {
-            summary = "同步完成：扫描 \(result.scannedCount) 封邮件，识别到 \(result.messages.count) 条订单状态。"
+            summary = "同步完成：扫描 \\(result.scannedCount) 封邮件，识别到 \\(result.messages.count) 条订单状态。"
         }
         store.setSyncResult(summary)
         BackgroundSync.shared.schedule()
