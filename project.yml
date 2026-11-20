@@ -29,7 +29,8 @@ targets:
     settings:
       base:
         PRODUCT_BUNDLE_IDENTIFIER: com.example.ApplePickupTracker
-        PRODUCT_NAME: Pickup Tracker
+        PRODUCT_NAME: ApplePickupTracker
+        INFOPLIST_KEY_CFBundleDisplayName: Apple Pickup Tracker
         INFOPLIST_KEY_NSSupportsLiveActivities: YES
         CODE_SIGN_ENTITLEMENTS: Resources/App.entitlements
   PickupWidget:
