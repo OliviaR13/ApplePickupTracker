@@ -17,8 +17,7 @@ struct OutlookFetchResult {
 
 private struct GraphMessagePage: Decodable {
     struct Message: Decodable {
-        struct Address: Decodable { let address: String? }
-        struct Email: Decodable { let address: Address? }
+        struct Email: Decodable { let address: String? }
         struct Sender: Decodable { let emailAddress: Email? }
         struct Body: Decodable { let content: String?; let contentType: String? }
         let id: String
