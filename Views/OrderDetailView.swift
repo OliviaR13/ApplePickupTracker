@@ -3,7 +3,7 @@ import UIKit
 
 struct OrderDetailView: View {
     let order: PickupOrder
-    @Environment(\\.dismiss) private var dismiss
+    @Environment(\.dismiss) private var dismiss
     @State private var liveActivity = LiveActivityManager()
     @State private var activityNote: String?
     @State private var activitiesDisabled = false
@@ -147,7 +147,7 @@ struct OrderDetailView: View {
 
     private func confidenceLabel(_ value: Double) -> String {
         let level = value >= 0.8 ? "较高" : (value >= 0.6 ? "中等" : "较低")
-        return "\\(level)（\\(Int((value * 100).rounded()))%）"
+        return "\(level)（\(Int((value * 100).rounded()))%）"
     }
 
     private func openSettings() {
