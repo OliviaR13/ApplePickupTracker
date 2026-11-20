@@ -136,7 +136,7 @@ enum GmailError: LocalizedError {
         case .tokenExchangeFailed: "Google Token 交换失败。"
         case .notConnected: "尚未连接 Gmail。"
         case .requestFailed: "Gmail 请求失败。"
-        case let .apiFailure(status, message): "Gmail API 错误（HTTP \\(status)）：\\(message)"
+        case let .apiFailure(status, message): "Gmail API 错误（HTTP \(status)）：\(message)"
         }
     }
 }
