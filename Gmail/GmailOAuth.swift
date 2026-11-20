@@ -127,6 +127,7 @@ final class GmailOAuth: NSObject, ObservableObject, ASWebAuthenticationPresentat
 
 enum GmailError: LocalizedError {
     case missingOAuthConfiguration, invalidURL, invalidCallback, tokenExchangeFailed, notConnected, requestFailed
+    case apiFailure(status: Int, message: String)
     var errorDescription: String? {
         switch self {
         case .missingOAuthConfiguration: "请先配置 Google OAuth iOS Client ID。"
@@ -135,6 +136,7 @@ enum GmailError: LocalizedError {
         case .tokenExchangeFailed: "Google Token 交换失败。"
         case .notConnected: "尚未连接 Gmail。"
         case .requestFailed: "Gmail 请求失败。"
+        case let .apiFailure(status, message): "Gmail API 错误（HTTP \\(status)）：\\(message)"
         }
     }
 }
