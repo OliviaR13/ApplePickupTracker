@@ -29,7 +29,7 @@ struct ContentView: View {
                             HStack {
                                 Text("取货订单")
                                 Spacer()
-                                Text("\\(store.orders.count)").foregroundStyle(.secondary)
+                                Text("\(store.orders.count)").foregroundStyle(.secondary)
                             }
                         }
                     }
@@ -125,7 +125,7 @@ struct ContentView: View {
         defer { isSyncing = false }
         do { try await syncService.sync() }
         catch {
-            store.setSyncResult("同步失败：\\(error.localizedDescription)")
+            store.setSyncResult("同步失败：\(error.localizedDescription)")
             errorMessage = error.localizedDescription
         }
     }
