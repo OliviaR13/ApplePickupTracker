@@ -71,7 +71,7 @@ final class OrderStore: ObservableObject {
         let formatter = DateFormatter()
         formatter.dateFormat = "yyyyMMdd-HHmmss"
         let url = FileManager.default.temporaryDirectory
-            .appendingPathComponent("ApplePickupTracker-Orders-\\(formatter.string(from: Date())).json")
+            .appendingPathComponent("ApplePickupTracker-Orders-\(formatter.string(from: Date())).json")
         try data.write(to: url, options: .atomic)
         return url
     }
