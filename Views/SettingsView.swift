@@ -1,7 +1,7 @@
 import SwiftUI
 
 struct SettingsView: View {
-    @EnvironmentObject private var oauth: GmailOAuth
+    @EnvironmentObject private var oauth: OutlookOAuth
     @EnvironmentObject private var store: OrderStore
     @Environment(\.dismiss) private var dismiss
     let onSync: () async -> Void
@@ -11,14 +11,15 @@ struct SettingsView: View {
     var body: some View {
         NavigationStack {
             Form {
-                Section("Gmail") {
+                Section("Outlook 邮箱") {
                     if oauth.isConnected {
-                        Label("Gmail connected", systemImage: "checkmark.circle.fill").foregroundStyle(.green)
-                        Button("Sync now") { Task { isWorking = true; await onSync(); isWorking = false } }.disabled(isWorking)
-                        Button("Disconnect Gmail", role: .destructive) { oauth.disconnect() }
+                        Label("Outlook 已连接", systemImage: "checkmark.circle.fill").foregroundStyle(.green)
+                        if let email = oauth.accountEmail { LabeledContent("账户", value: email) }
+                        Button("立即同步") { Task { isWorking = true; await onSync(); isWorking = false } }.disabled(isWorking)
+                        Button("断开 Outlook 连接", role: .destructive) { oauth.disconnect() }
                     } else {
-                        Text("Connect Gmail with read-only access to find Apple order emails.").foregroundStyle(.secondary)
-                        Button("Connect Gmail") {
+                        Text("使用个人 Microsoft 账户登录，并以只读权限查找 Apple 订单邮件。").foregroundStyle(.secondary)
+                        Button("连接 Outlook") {
                             Task {
                                 isWorking = true
                                 do { try await oauth.connect(); await onSync() }
@@ -28,21 +29,20 @@ struct SettingsView: View {
                         }.disabled(isWorking)
                     }
                 }
-                Section("Privacy") {
-                    Label("Email content is processed on this iPhone", systemImage: "iphone")
-                    Label("Order data stays in local storage", systemImage: "lock.fill")
-                    Label("Gmail permission: read-only", systemImage: "envelope.badge")
+                Section("隐私与权限") {
+                    Label("邮件内容仅在此 iPhone 上处理", systemImage: "iphone")
+                    Label("订单数据保存在本机", systemImage: "lock.fill")
+                    Label("Microsoft Graph：Mail.Read 只读权限", systemImage: "envelope.badge")
                 }
-                Section("Sync") {
-                    LabeledContent("Last sync", value: store.lastSync?.formatted(date: .abbreviated, time: .shortened) ?? "Never")
-                    Text("iOS schedules background refresh when system resources allow. Refresh timing is not guaranteed.").font(.footnote).foregroundStyle(.secondary)
+                Section("同步") {
+                    LabeledContent("上次同步", value: store.lastSync?.formatted(date: .abbreviated, time: .shortened) ?? "从未同步")
+                    Text("iOS 会在系统资源允许时安排后台刷新，实际刷新时间由系统决定。").font(.footnote).foregroundStyle(.secondary)
                 }
             }
-            .navigationTitle("Settings")
-            .navigationBarTitleDisplayMode(.inline)
-            .toolbar { ToolbarItem(placement: .topBarTrailing) { Button("Done") { dismiss() } } }
-            .alert("Gmail", isPresented: Binding(get: { message != nil }, set: { if !$0 { message = nil } })) {
-                Button("OK", role: .cancel) { message = nil }
+            .navigationTitle("设置").navigationBarTitleDisplayMode(.inline)
+            .toolbar { ToolbarItem(placement: .topBarTrailing) { Button("完成") { dismiss() } } }
+            .alert("Outlook", isPresented: Binding(get: { message != nil }, set: { if !$0 { message = nil } })) {
+                Button("好", role: .cancel) { message = nil }
             } message: { Text(message ?? "") }
         }
     }
