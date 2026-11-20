@@ -9,9 +9,9 @@ final class SyncService {
     init(gmail: GmailClient, store: OrderStore) { self.gmail = gmail; self.store = store }
 
     func sync() async throws {
-        let messages = try await gmail.fetchAppleOrderMessages()
+        let result = try await gmail.fetchAppleOrderMessages()
         var newlyReady: [PickupOrder] = []
-        for message in messages {
+        for message in result.messages {
             let becameReady = store.upsert(orderNumber: message.orderNumber, product: message.productName, store: message.storeName,
                                            status: message.status, messageID: message.messageID, date: message.date)
             if becameReady, let order = store.orders.first(where: { $0.orderNumber == message.orderNumber }) {
@@ -24,7 +24,14 @@ final class SyncService {
         for order in newlyReady {
             await NotificationManager.shared.notifyReady(order: order)
         }
-        store.setSyncResult("Found \(messages.count) Apple order emails")
+
+        let summary: String
+        if result.messages.isEmpty {
+            summary = "已连接 Gmail；检查了 \(result.scannedCount) 封邮件，其中 \(result.appleSenderCount) 封来自 Apple，但没有识别到取货订单。"
+        } else {
+            summary = "同步完成：扫描 \(result.scannedCount) 封邮件，识别到 \(result.messages.count) 条订单状态。"
+        }
+        store.setSyncResult(summary)
         BackgroundSync.shared.schedule()
     }
 }
