@@ -47,7 +47,7 @@ final class OutlookClient {
             .init(name: "$top", value: "100"),
             .init(name: "$select", value: "id,receivedDateTime,from,subject,body"),
             .init(name: "$orderby", value: "receivedDateTime desc"),
-            .init(name: "$filter", value: "receivedDateTime ge \\(ISO8601DateFormatter().string(from: Calendar.current.date(byAdding: .day, value: -365, to: Date())!))")
+            .init(name: "$filter", value: "receivedDateTime ge \(ISO8601DateFormatter().string(from: Calendar.current.date(byAdding: .day, value: -365, to: Date())!))")
         ]
         var nextURL: URL? = components.url
         var parsed: [ParsedPickupMail] = []
@@ -56,7 +56,7 @@ final class OutlookClient {
 
         while let url = nextURL, scanned < 1000 {
             var request = URLRequest(url: url)
-            request.setValue("Bearer \\(token)", forHTTPHeaderField: "Authorization")
+            request.setValue("Bearer \(token)", forHTTPHeaderField: "Authorization")
             request.setValue("outlook.body-content-type=\"text\"", forHTTPHeaderField: "Prefer")
             request.timeoutInterval = 30
             let (data, response) = try await URLSession.shared.data(for: request)
@@ -67,7 +67,7 @@ final class OutlookClient {
                 let sender = message.from?.emailAddress?.address?.lowercased() ?? ""
                 guard Self.isAppleSender(sender) else { continue }
                 appleCount += 1
-                let content = AppleMailFields.plain((message.subject ?? "") + "\\n" + (message.body?.content ?? ""))
+                let content = AppleMailFields.plain((message.subject ?? "") + "\n" + (message.body?.content ?? ""))
                 guard let order = AppleMailFields.normalizedOrderNumber(in: content) else { continue }
                 let status = PickupStatus.detect(in: content)
                 guard status != .unknown else { continue }
