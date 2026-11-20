@@ -30,9 +30,9 @@ final class SyncService {
 
         let summary: String
         if result.messages.isEmpty {
-            summary = "已连接 Outlook；检查了 \\(result.scannedCount) 封邮件，其中 \\(result.appleSenderCount) 封来自 Apple，但没有识别到取货订单。"
+            summary = "已连接 Outlook；检查了 \(result.scannedCount) 封邮件，其中 \(result.appleSenderCount) 封来自 Apple，但没有识别到取货订单。"
         } else {
-            summary = "同步完成：扫描 \\(result.scannedCount) 封邮件，识别到 \\(result.messages.count) 条订单状态。"
+            summary = "同步完成：扫描 \(result.scannedCount) 封邮件，识别到 \(result.messages.count) 条订单状态。"
         }
         store.setSyncResult(summary)
         BackgroundSync.shared.schedule()
