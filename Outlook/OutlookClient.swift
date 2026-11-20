@@ -5,6 +5,7 @@ struct ParsedPickupMail {
     let productName: String
     let storeName: String
     let pickupNote: String?
+    let recognitionConfidence: Double
     let status: PickupStatus
     let messageID: String
     let date: Date
@@ -46,7 +47,7 @@ final class OutlookClient {
             .init(name: "$top", value: "100"),
             .init(name: "$select", value: "id,receivedDateTime,from,subject,body"),
             .init(name: "$orderby", value: "receivedDateTime desc"),
-            .init(name: "$filter", value: "receivedDateTime ge \(ISO8601DateFormatter().string(from: Calendar.current.date(byAdding: .day, value: -365, to: Date())!))")
+            .init(name: "$filter", value: "receivedDateTime ge \\(ISO8601DateFormatter().string(from: Calendar.current.date(byAdding: .day, value: -365, to: Date())!))")
         ]
         var nextURL: URL? = components.url
         var parsed: [ParsedPickupMail] = []
@@ -55,7 +56,7 @@ final class OutlookClient {
 
         while let url = nextURL, scanned < 1000 {
             var request = URLRequest(url: url)
-            request.setValue("Bearer \(token)", forHTTPHeaderField: "Authorization")
+            request.setValue("Bearer \\(token)", forHTTPHeaderField: "Authorization")
             request.setValue("outlook.body-content-type=\"text\"", forHTTPHeaderField: "Prefer")
             request.timeoutInterval = 30
             let (data, response) = try await URLSession.shared.data(for: request)
@@ -66,20 +67,22 @@ final class OutlookClient {
                 let sender = message.from?.emailAddress?.address?.lowercased() ?? ""
                 guard Self.isAppleSender(sender) else { continue }
                 appleCount += 1
-                let content = AppleMailFields.plain((message.subject ?? "") + "\n" + (message.body?.content ?? ""))
-                guard let order = Self.firstMatch(#"(?i)(?:order\s*(?:number|#|no\.?)[\s:：#]*)\s*([A-Z0-9-]{8,})|\b(W\d{8,})\b"#, in: content) else { continue }
+                let content = AppleMailFields.plain((message.subject ?? "") + "\\n" + (message.body?.content ?? ""))
+                guard let order = AppleMailFields.normalizedOrderNumber(in: content) else { continue }
                 let status = PickupStatus.detect(in: content)
                 guard status != .unknown else { continue }
+                let product = AppleMailFields.productName(from: content)
+                let store = AppleMailFields.storeName(from: content)
+                let confidence = AppleMailFields.confidence(orderNumber: order, productName: product, storeName: store, status: status)
                 let date = message.receivedDateTime.flatMap { value -> Date? in
-                    if let date = ISO8601DateFormatter().date(from: value) { return date }
-                    let formatter = ISO8601DateFormatter()
-                    formatter.formatOptions = [.withInternetDateTime, .withFractionalSeconds]
-                    return formatter.date(from: value)
+                    let fractional = ISO8601DateFormatter()
+                    fractional.formatOptions = [.withInternetDateTime, .withFractionalSeconds]
+                    return fractional.date(from: value) ?? ISO8601DateFormatter().date(from: value)
                 } ?? Date()
-                parsed.append(ParsedPickupMail(orderNumber: order, productName: Self.productName(from: content),
-                                               storeName: AppleMailFields.storeName(from: content),
+                parsed.append(ParsedPickupMail(orderNumber: order, productName: product, storeName: store,
                                                pickupNote: AppleMailFields.pickupNote(from: content),
-                                               status: status, messageID: message.id, date: date))
+                                               recognitionConfidence: confidence, status: status,
+                                               messageID: message.id, date: date))
             }
             nextURL = page.nextLink.flatMap(URL.init(string:))
         }
@@ -100,23 +103,4 @@ final class OutlookClient {
         guard let domain = address.split(separator: "@").last?.lowercased() else { return false }
         return domain == "apple.com" || domain.hasSuffix(".apple.com")
     }
-
-    private static func firstMatch(_ pattern: String, in text: String) -> String? {
-        guard let regex = try? NSRegularExpression(pattern: pattern),
-              let match = regex.firstMatch(in: text, range: NSRange(text.startIndex..., in: text)) else { return nil }
-        for index in 1..<match.numberOfRanges {
-            if let range = Range(match.range(at: index), in: text) { return String(text[range]) }
-        }
-        return Range(match.range, in: text).map { String(text[$0]) }
-    }
-
-    private static func productName(from text: String) -> String {
-        let lines = text.components(separatedBy: .newlines).map { $0.trimmingCharacters(in: .whitespacesAndNewlines) }.filter { !$0.isEmpty }
-        return lines.first(where: { line in
-            ["iPhone", "MacBook", "iPad", "Apple Watch"].contains(where: { keyword in
-                line.localizedCaseInsensitiveContains(keyword)
-            })
-        }) ?? "Apple Store Order"
-    }
-
 }
