@@ -4,7 +4,7 @@
 <dict>
     <key>CFBundleDisplayName</key><string>Pickup Tracker</string>
     <key>CFBundleURLTypes</key>
-    <array><dict><key>CFBundleURLSchemes</key><array><string>com.googleusercontent.apps.YOUR_REVERSED_CLIENT_ID</string></array></dict></array>
+    <array><dict><key>CFBundleURLSchemes</key><array><string>com.googleusercontent.apps.963422500853-ngfp095nepkeklena1ul1vtpp2sddt44</string></array></dict></array>
     <key>UIBackgroundModes</key><array><string>fetch</string></array>
     <key>BGTaskSchedulerPermittedIdentifiers</key>
     <array><string>com.example.ApplePickupTracker.refresh</string></array>
