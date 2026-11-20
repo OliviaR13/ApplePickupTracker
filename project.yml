@@ -40,6 +40,7 @@ targets:
       - path: LiveActivity/PickupAttributes.swift
       - path: Models/PickupOrder.swift
     info:
+      path: Resources/Widget-Info.plist
       properties:
         CFBundleDisplayName: Pickup Live Activity
         NSExtension:
