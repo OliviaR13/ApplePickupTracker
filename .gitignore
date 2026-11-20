@@ -1,5 +1,24 @@
+# macOS
 .DS_Store
+
+# Xcode / XcodeGen (the project is regenerated from project.yml)
+*.xcodeproj/
+*.xcworkspace/
 build/
 DerivedData/
 *.xcuserstate
 xcuserdata/
+
+# Build products
+*.ipa
+*.dSYM.zip
+
+# Secrets — never commit signing material or client secrets
+*.p12
+*.mobileprovision
+*.cer
+.env
+
+# Editors
+.vscode/
+.idea/

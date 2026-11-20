@@ -16,6 +16,15 @@ final class SyncService {
     private static let lastScanKey = "outlook.lastScanDate"
     private static let parserVersionKey = "outlook.parserVersion"
 
+    /// Forgets the incremental-scan state so the next sync re-reads the whole window.
+    static func resetScanState() {
+        UserDefaults.standard.removeObject(forKey: lastScanKey)
+        UserDefaults.standard.removeObject(forKey: parserVersionKey)
+    }
+
+    /// Foreground, background-refresh and manual syncs can overlap; only one may run at a time.
+    private var isRunning = false
+
     /// Incremental sync: only look at mail since the last successful scan (3-day overlap).
     /// Falls back to a full scan on first run, when no orders are stored, or after a parser update.
     private func scanStart() -> Date? {
@@ -27,6 +36,9 @@ final class SyncService {
     }
 
     func sync() async throws {
+        guard !isRunning else { return }
+        isRunning = true
+        defer { isRunning = false }
         let scanStartedAt = Date()
         let result = try await outlook.fetchAppleOrderMessages(since: scanStart())
         var newlyReady: [PickupOrder] = []
@@ -39,9 +51,7 @@ final class SyncService {
             }
         }
         if !result.messages.isEmpty { store.commit() }
-        for order in store.orders where order.status != .pickedUp && order.status != .cancelled {
-            await activity.startOrUpdate(for: order)
-        }
+        await activity.reconcile(with: store.orders)
         for order in newlyReady {
             await NotificationManager.shared.notifyReady(order: order)
         }

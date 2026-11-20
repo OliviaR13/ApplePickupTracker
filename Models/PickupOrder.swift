@@ -81,6 +81,9 @@ enum PickupStatus: String, Codable, CaseIterable, Comparable {
         }
     }
 
+    /// True once the order needs no more tracking.
+    var isFinished: Bool { self == .pickedUp || self == .cancelled }
+
     static func < (lhs: PickupStatus, rhs: PickupStatus) -> Bool {
         lhs.progress < rhs.progress
     }

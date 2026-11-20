@@ -8,6 +8,9 @@ final class OrderStore: ObservableObject {
     @Published var syncMessage: String?
 
     private let fileURL: URL
+    private static let ignoredKey = "orders.ignoredNumbers"
+    /// Orders the user removed by hand. Later syncs must not bring them back.
+    private var ignoredNumbers = Set(UserDefaults.standard.stringArray(forKey: OrderStore.ignoredKey) ?? [])
 
     init() {
         let directory = FileManager.default.urls(for: .applicationSupportDirectory, in: .userDomainMask)[0]
@@ -20,6 +23,7 @@ final class OrderStore: ObservableObject {
     /// then call `commit()` once so the list is sorted and written to disk a single time.
     @discardableResult
     func upsert(orderNumber: String, product: String, store: String, pickupNote: String? = nil, status: PickupStatus, messageID: String, date: Date, persist: Bool = true) -> Bool {
+        guard !ignoredNumbers.contains(orderNumber) else { return false }
         let existing = orders.firstIndex(where: { $0.orderNumber == orderNumber })
         let previousStatus = existing.map { orders[$0].status }
         let target: Int
@@ -48,6 +52,39 @@ final class OrderStore: ObservableObject {
     func commit() {
         orders.sort { $0.lastUpdated > $1.lastUpdated }
         save()
+    }
+
+    /// Removes an order for good: it is also remembered so a later sync does not re-add it.
+    func remove(orderNumber: String) {
+        orders.removeAll { $0.orderNumber == orderNumber }
+        ignoredNumbers.insert(orderNumber)
+        persistIgnored()
+        save()
+    }
+
+    /// Adds an order the user typed in. Later Apple emails with the same number update it as usual.
+    func addManual(orderNumber: String, product: String, store: String, status: PickupStatus) {
+        ignoredNumbers.remove(orderNumber)
+        persistIgnored()
+        upsert(orderNumber: orderNumber, product: product, store: store, status: status, messageID: "manual", date: Date())
+    }
+
+    private func persistIgnored() {
+        UserDefaults.standard.set(Array(ignoredNumbers), forKey: Self.ignoredKey)
+    }
+
+    func order(withNumber number: String) -> PickupOrder? {
+        orders.first { $0.orderNumber == number }
+    }
+
+    /// Removes every saved order and the incremental-scan bookkeeping so the next sync starts fresh.
+    func clearAll() {
+        orders = []
+        lastSync = nil
+        syncMessage = nil
+        ignoredNumbers = []
+        UserDefaults.standard.removeObject(forKey: Self.ignoredKey)
+        try? FileManager.default.removeItem(at: fileURL)
     }
 
     func setSyncResult(_ message: String) {

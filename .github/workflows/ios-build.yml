@@ -12,6 +12,10 @@ on:
 permissions:
   contents: read
 
+env:
+  HOMEBREW_NO_AUTO_UPDATE: "1"
+  HOMEBREW_NO_INSTALL_CLEANUP: "1"
+
 concurrency:
   group: ios-build-${{ github.ref }}
   cancel-in-progress: true
@@ -53,6 +57,15 @@ jobs:
 
       - name: Build and package unsigned IPA
         run: bash ./package-unsigned-ipa.sh
+
+      - name: Upload build log on failure
+        if: failure()
+        uses: actions/upload-artifact@v4
+        with:
+          name: xcodebuild-log
+          path: build/xcodebuild.log
+          if-no-files-found: ignore
+          retention-days: 7
 
       - name: Upload unsigned IPA
         uses: actions/upload-artifact@v4

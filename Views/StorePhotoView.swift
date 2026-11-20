@@ -24,6 +24,12 @@ enum StoreImageLoader {
             return nil
         }
     }
+
+    /// Looks the store up in Apple's retail directory and loads its hero photo.
+    static func image(forStoreName storeName: String?) async -> UIImage? {
+        guard let storeName, let store = await AppleStoreDirectory.shared.store(matching: storeName) else { return nil }
+        return await image(for: store.imageURL)
+    }
 }
 
 struct StorePhotoView: View {
@@ -40,14 +46,26 @@ struct StorePhotoView: View {
                 Image(uiImage: image)
                     .resizable()
                     .scaledToFill()
+                    .transition(.opacity)
             } else {
                 placeholder
             }
         }
         .frame(width: height, height: height)
         .clipShape(RoundedRectangle(cornerRadius: cornerRadius, style: .continuous))
+        .overlay(
+            RoundedRectangle(cornerRadius: cornerRadius, style: .continuous)
+                .strokeBorder(Color.primary.opacity(0.06), lineWidth: 0.5)
+        )
         .accessibilityLabel(image == nil ? "暂无店面照片" : "\(storeName ?? "门店")店面")
-        .task(id: storeName) { await load() }
+        .task(id: storeName) {
+            resolved = false
+            image = nil
+            let loaded = await StoreImageLoader.image(forStoreName: storeName)
+            guard !Task.isCancelled else { return }
+            withAnimation(.easeOut(duration: 0.2)) { image = loaded }
+            resolved = true
+        }
     }
 
     private var placeholder: some View {
@@ -58,17 +76,6 @@ struct StorePhotoView: View {
                 .foregroundStyle(.secondary)
                 .symbolRenderingMode(.hierarchical)
         }
-    }
-
-    private func load() async {
-        resolved = false
-        image = nil
-        guard let storeName, let store = await AppleStoreDirectory.shared.store(matching: storeName) else {
-            resolved = true
-            return
-        }
-        image = await StoreImageLoader.image(for: store.imageURL)
-        resolved = true
     }
 }
 
@@ -84,6 +91,7 @@ struct StorePhotoBanner: View {
                     Image(uiImage: image)
                         .resizable()
                         .scaledToFill()
+                        .transition(.opacity)
                 } else {
                     ZStack {
                         LinearGradient(colors: [Color.blue.opacity(0.55), Color.cyan.opacity(0.35)], startPoint: .topLeading, endPoint: .bottomTrailing)
@@ -111,19 +119,15 @@ struct StorePhotoBanner: View {
                 .liquidGlass(in: Capsule())
                 .padding(14)
         }
-        .clipShape(RoundedRectangle(cornerRadius: 22, style: .continuous))
+        .clipShape(RoundedRectangle(cornerRadius: 24, style: .continuous))
         .accessibilityElement(children: .combine)
-        .task(id: storeName) { await load() }
-    }
-
-    private func load() async {
-        resolved = false
-        image = nil
-        guard let storeName, let store = await AppleStoreDirectory.shared.store(matching: storeName) else {
+        .task(id: storeName) {
+            resolved = false
+            image = nil
+            let loaded = await StoreImageLoader.image(forStoreName: storeName)
+            guard !Task.isCancelled else { return }
+            withAnimation(.easeOut(duration: 0.25)) { image = loaded }
             resolved = true
-            return
         }
-        image = await StoreImageLoader.image(for: store.imageURL)
-        resolved = true
     }
 }

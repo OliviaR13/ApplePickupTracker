@@ -11,8 +11,8 @@ final class NotificationManager {
 
     func notifyReady(order: PickupOrder) async {
         let content = UNMutableNotificationContent()
-        content.title = "Ready for Pickup"
-        content.body = "\(order.productName) is ready at \(order.storeName)."
+        content.title = "可以取货了"
+        content.body = "\(order.productName) 已在 \(order.displayStoreName) 备妥，请携带有效身份证件前往。"
         content.sound = .default
         let request = UNNotificationRequest(identifier: "pickup-ready-\(order.orderNumber)", content: content, trigger: nil)
         try? await UNUserNotificationCenter.current().add(request)

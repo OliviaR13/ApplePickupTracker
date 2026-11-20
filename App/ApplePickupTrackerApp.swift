@@ -3,27 +3,25 @@ import BackgroundTasks
 
 @main
 struct ApplePickupTrackerApp: App {
-    @StateObject private var store = OrderStore()
-    @StateObject private var oauth = OutlookOAuth()
+    @StateObject private var container = AppContainer()
     @Environment(\.scenePhase) private var scenePhase
-
-    private var syncService: SyncService { SyncService(outlook: OutlookClient(oauth: oauth), store: store) }
 
     var body: some Scene {
         WindowGroup {
-            ContentView(syncService: syncService)
-                .environmentObject(store)
-                .environmentObject(oauth)
+            ContentView(syncService: container.syncService)
+                .environmentObject(container.store)
+                .environmentObject(container.oauth)
                 .task {
                     await NotificationManager.shared.requestPermission()
+                    let container = container
                     BackgroundSync.shared.register {
-                        do { try await self.syncService.sync() }
-                        catch { self.store.setSyncResult("同步失败：\(SyncErrorText.describe(error))") }
+                        do { try await container.syncService.sync() }
+                        catch { container.store.setSyncResult("同步失败：\(SyncErrorText.describe(error))") }
                     }
                 }
                 .onChange(of: scenePhase) { _, phase in
-                    if phase == .active, oauth.isConnected {
-                        Task { try? await syncService.sync() }
+                    if phase == .active, container.oauth.isConnected {
+                        Task { try? await container.syncService.sync() }
                     }
                 }
         }

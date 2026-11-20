@@ -6,9 +6,28 @@ struct ContentView: View {
     @State private var isSyncing = false
     @State private var errorMessage: String?
     @State private var showingSettings = false
+    @State private var showingAddOrder = false
+    @State private var searchText = ""
+    @State private var filter: OrderFilter = .all
 
     private let syncService: SyncService
     init(syncService: SyncService) { self.syncService = syncService }
+
+    /// Orders after the status filter and the search text are applied.
+    private var visibleOrders: [PickupOrder] {
+        let query = searchText.trimmingCharacters(in: .whitespacesAndNewlines)
+        return store.orders.filter { order in
+            guard filter.matches(order) else { return false }
+            guard !query.isEmpty else { return true }
+            return order.productName.localizedCaseInsensitiveContains(query)
+                || order.displayStoreName.localizedCaseInsensitiveContains(query)
+                || order.orderNumber.localizedCaseInsensitiveContains(query)
+        }
+    }
+    private var activeOrders: [PickupOrder] { visibleOrders.filter { !$0.status.isFinished } }
+    private var finishedOrders: [PickupOrder] { visibleOrders.filter { $0.status.isFinished } }
+    private var readyCount: Int { store.orders.filter { $0.status == .readyForPickup }.count }
+    private var syncFailed: Bool { store.syncMessage?.hasPrefix("同步失败") == true }
 
     var body: some View {
         NavigationStack {
@@ -16,33 +35,20 @@ struct ContentView: View {
                 if store.orders.isEmpty {
                     emptyState
                 } else {
-                    List {
-                        if isSyncing || store.syncMessage != nil {
-                            Section { syncStatus }
-                        }
-                        Section {
-                            ForEach(store.orders) { order in
-                                NavigationLink(value: order) { OrderRow(order: order) }
-                                    .listRowInsets(EdgeInsets(top: 10, leading: 16, bottom: 10, trailing: 16))
-                            }
-                        } header: {
-                            HStack {
-                                Text("取货订单")
-                                Spacer()
-                                Text("\(store.orders.count)").foregroundStyle(.secondary)
-                            }
-                        }
-                    }
-                    .listStyle(.insetGrouped)
+                    orderList
                 }
             }
             .navigationTitle("Apple 取货追踪")
             .navigationBarTitleDisplayMode(.large)
-            .navigationDestination(for: PickupOrder.self) { OrderDetailView(order: $0) }
+            .navigationDestination(for: PickupOrder.self) { OrderDetailView(initial: $0) }
             .toolbar {
                 ToolbarItem(placement: .topBarLeading) {
                     Button { showingSettings = true } label: { Image(systemName: "gearshape") }
                         .accessibilityLabel("设置")
+                }
+                ToolbarItem(placement: .topBarTrailing) {
+                    Button { showingAddOrder = true } label: { Image(systemName: "plus") }
+                        .accessibilityLabel("手动添加订单")
                 }
                 ToolbarItem(placement: .topBarTrailing) {
                     Button { Task { await sync() } } label: {
@@ -71,12 +77,83 @@ struct ContentView: View {
                 }
             }
             .sheet(isPresented: $showingSettings) { SettingsView(onSync: { await sync() }) }
+            .sheet(isPresented: $showingAddOrder) { AddOrderView() }
             .alert("操作失败", isPresented: Binding(get: { errorMessage != nil }, set: { if !$0 { errorMessage = nil } })) {
                 Button("好", role: .cancel) { errorMessage = nil }
             } message: { Text(errorMessage ?? "") }
         }
         .task { BackgroundSync.shared.schedule() }
     }
+
+    // MARK: - List
+
+    private var orderList: some View {
+        List {
+            if isSyncing || store.syncMessage != nil {
+                Section { syncStatus }
+            }
+            Section {
+                Picker("筛选", selection: $filter) {
+                    ForEach(OrderFilter.allCases) { Text($0.title).tag($0) }
+                }
+                .pickerStyle(.segmented)
+                .listRowInsets(EdgeInsets(top: 4, leading: 0, bottom: 4, trailing: 0))
+                .listRowBackground(Color.clear)
+            }
+            if readyCount > 0 && filter == .all && searchText.isEmpty {
+                Section { readyBanner }
+            }
+            if visibleOrders.isEmpty {
+                Section { noResults.listRowBackground(Color.clear) }
+            }
+            if !activeOrders.isEmpty {
+                orderSection("进行中", activeOrders)
+            }
+            if !finishedOrders.isEmpty {
+                orderSection("已完成", finishedOrders)
+            }
+        }
+        .listStyle(.insetGrouped)
+        .refreshable { if oauth.isConnected { await sync() } }
+        .searchable(text: $searchText, prompt: "搜索商品、门店或订单号")
+    }
+
+    @ViewBuilder
+    private var noResults: some View {
+        if searchText.trimmingCharacters(in: .whitespacesAndNewlines).isEmpty {
+            ContentUnavailableView("没有符合条件的订单", systemImage: "line.3.horizontal.decrease.circle",
+                                   description: Text("换一个筛选条件试试。"))
+        } else {
+            ContentUnavailableView.search(text: searchText)
+        }
+    }
+
+    private func orderSection(_ title: String, _ orders: [PickupOrder]) -> some View {
+        Section {
+            ForEach(orders) { order in
+                NavigationLink(value: order) { OrderRow(order: order) }
+                    .listRowInsets(EdgeInsets(top: 10, leading: 16, bottom: 10, trailing: 16))
+                    .swipeActions(edge: .trailing, allowsFullSwipe: false) {
+                        Button(role: .destructive) { remove(order) } label: { Label("移除", systemImage: "trash") }
+                    }
+            }
+        } header: {
+            HStack {
+                Text(title)
+                Spacer()
+                Text("\(orders.count)").foregroundStyle(.secondary)
+            }
+        }
+    }
+
+    private var readyBanner: some View {
+        Label("\(readyCount) 个订单可以取货", systemImage: "checkmark.seal.fill")
+            .font(.subheadline.weight(.semibold))
+            .foregroundStyle(.green)
+            .padding(.vertical, 4)
+    }
+
+    // MARK: - Empty state
 
     private var emptyState: some View {
         ContentUnavailableView {
@@ -111,7 +188,7 @@ struct ContentView: View {
             : "连接个人 Outlook 邮箱，自动查找 Apple Store Pickup 订单。"
     }
 
-    private var syncFailed: Bool { store.syncMessage?.hasPrefix("同步失败") == true }
+    // MARK: - Sync status
 
     private var syncStatus: some View {
         HStack(alignment: .top, spacing: 12) {
@@ -140,6 +217,13 @@ struct ContentView: View {
         .padding(.vertical, 6)
     }
 
+    // MARK: - Actions
+
+    private func remove(_ order: PickupOrder) {
+        store.remove(orderNumber: order.orderNumber)
+        Task { await LiveActivityManager().end(orderNumber: order.orderNumber) }
+    }
+
     private func connectAndSync() async {
         do { try await oauth.connect(); await sync() }
         catch { errorMessage = error.localizedDescription }
@@ -160,13 +244,10 @@ struct ContentView: View {
 
 private struct OrderRow: View {
     let order: PickupOrder
+
     var body: some View {
         HStack(spacing: 14) {
-            if let storeName = order.recognizedStoreName {
-                StorePhotoView(storeName: storeName, height: 58, cornerRadius: 16)
-            } else {
-                StorePhotoView(storeName: nil, height: 58, cornerRadius: 16)
-            }
+            StorePhotoView(storeName: order.recognizedStoreName, height: 58, cornerRadius: 16)
             VStack(alignment: .leading, spacing: 5) {
                 Text(order.productName)
                     .font(.headline)
@@ -175,39 +256,19 @@ private struct OrderRow: View {
                 Text(order.displayStoreName)
                     .font(.subheadline)
                     .foregroundStyle(.secondary)
-                    .lineLimit(2)
-                StatusBadge(status: order.status)
+                    .lineLimit(1)
+                HStack(spacing: 8) {
+                    StatusBadge(status: order.status)
+                    Text(order.lastUpdated.formatted(.relative(presentation: .named)))
+                        .font(.caption)
+                        .foregroundStyle(.tertiary)
+                        .lineLimit(1)
+                }
             }
             Spacer(minLength: 4)
         }
         .padding(.vertical, 4)
         .contentShape(Rectangle())
         .accessibilityElement(children: .combine)
-    }
-}
-
-struct StatusBadge: View {
-    let status: PickupStatus
-    var body: some View {
-        Label(status.title, systemImage: status.symbolName)
-            .font(.caption.weight(.semibold))
-            .foregroundStyle(status.tint)
-            .padding(.horizontal, 8)
-            .padding(.vertical, 4)
-            .background(status.tint.opacity(0.14), in: Capsule())
-            .lineLimit(1)
-            .minimumScaleFactor(0.8)
-    }
-}
-
-extension PickupStatus {
-    var tint: Color {
-        switch self {
-        case .readyForPickup: .green
-        case .shippingToStore: .blue
-        case .processing: .orange
-        case .cancelled: .red
-        case .ordered, .pickedUp, .unknown: .secondary
-        }
     }
 }

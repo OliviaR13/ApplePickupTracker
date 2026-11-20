@@ -60,6 +60,12 @@ private struct LockScreenActivity: View {
                 .font(.caption)
                 .foregroundStyle(palette.secondary)
                 .lineLimit(1)
+            if context.isStale {
+                Text("信息可能已过期，打开 App 即可刷新")
+                    .font(.caption2)
+                    .foregroundStyle(palette.secondary)
+                    .lineLimit(1)
+            }
         }
         .padding(4)
         .frame(maxWidth: .infinity, minHeight: 84, alignment: .leading)

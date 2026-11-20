@@ -23,6 +23,16 @@ APP="$DERIVED/Build/Products/Release-iphoneos/ApplePickupTracker.app"
 [ -f "$APP/Info.plist" ] || { echo "Missing app Info.plist" >&2; exit 1; }
 [ -f "$APP/ApplePickupTracker" ] || { echo "Missing app executable" >&2; exit 1; }
 
+# Live Activity UI ships in the widget extension; without it nothing shows on the Lock Screen.
+WIDGET="$APP/PlugIns/PickupWidget.appex"
+[ -d "$WIDGET" ] || { echo "Widget extension is not embedded: $WIDGET" >&2; exit 1; }
+/usr/libexec/PlistBuddy -c 'Print :NSExtension:NSExtensionPointIdentifier' "$WIDGET/Info.plist" 2>/dev/null \
+  | grep -q 'com.apple.widgetkit-extension' \
+  || { echo "Widget Info.plist has no widgetkit NSExtensionPointIdentifier." >&2; exit 1; }
+/usr/libexec/PlistBuddy -c 'Print :NSSupportsLiveActivities' "$APP/Info.plist" 2>/dev/null \
+  | grep -qi 'true' \
+  || { echo "App Info.plist is missing NSSupportsLiveActivities." >&2; exit 1; }
+
 echo "---- Built Info.plist (launch screen, orientations, icon) ----"
 /usr/libexec/PlistBuddy -c 'Print' "$APP/Info.plist" || true
 
@@ -104,4 +114,5 @@ unzip -Z1 "$ROOT/build/ApplePickupTracker-unsigned.ipa" | grep -q '^Payload/Appl
 unzip -Z1 "$ROOT/build/ApplePickupTracker-unsigned.ipa" | grep -q '^Payload/ApplePickupTracker.app/ApplePickupTracker$'
 unzip -Z1 "$ROOT/build/ApplePickupTracker-unsigned.ipa" | grep -q 'Payload/ApplePickupTracker.app/LaunchScreen.storyboardc'
 unzip -Z1 "$ROOT/build/ApplePickupTracker-unsigned.ipa" | grep -q 'Payload/ApplePickupTracker.app/Assets.car'
+unzip -Z1 "$ROOT/build/ApplePickupTracker-unsigned.ipa" | grep -q 'Payload/ApplePickupTracker.app/PlugIns/PickupWidget.appex/Info.plist'
 echo "Created and validated: $ROOT/build/ApplePickupTracker-unsigned.ipa"
