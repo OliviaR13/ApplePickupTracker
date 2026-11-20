@@ -17,19 +17,25 @@ final class OrderStore: ObservableObject {
     }
 
     @discardableResult
-    func upsert(orderNumber: String, product: String, store: String, pickupNote: String? = nil, status: PickupStatus, messageID: String, date: Date) -> Bool {
+    func upsert(orderNumber: String, product: String, store: String, pickupNote: String? = nil,
+                recognitionConfidence: Double? = nil, status: PickupStatus, messageID: String, date: Date) -> Bool {
         let previousStatus = orders.first(where: { $0.orderNumber == orderNumber })?.status
         if let index = orders.firstIndex(where: { $0.orderNumber == orderNumber }) {
             orders[index].apply(status: status, at: date, sourceMessageID: messageID)
-            if orders[index].productName.isEmpty || orders[index].productName == "Apple Store Order", !product.isEmpty {
+            if (orders[index].productName.isEmpty || orders[index].productName == "Apple Store Order"), !product.isEmpty {
                 orders[index].productName = product
             }
             if shouldAdoptStore(current: orders[index].storeName, new: store) {
                 orders[index].storeName = store
             }
             if let pickupNote, !pickupNote.isEmpty { orders[index].pickupNote = pickupNote }
+            if let recognitionConfidence,
+               recognitionConfidence > (orders[index].recognitionConfidence ?? 0) {
+                orders[index].recognitionConfidence = recognitionConfidence
+            }
         } else {
-            orders.append(PickupOrder(orderNumber: orderNumber, productName: product, storeName: store, pickupNote: pickupNote,
+            orders.append(PickupOrder(orderNumber: orderNumber, productName: product, storeName: store,
+                                      pickupNote: pickupNote, recognitionConfidence: recognitionConfidence,
                                       status: status, lastUpdated: date, sourceMessageID: messageID,
                                       history: [OrderEvent(status: status, date: date)]))
         }
@@ -42,6 +48,32 @@ final class OrderStore: ObservableObject {
     func setSyncResult(_ message: String) {
         lastSync = Date()
         syncMessage = message
+    }
+
+    func deleteOrder(orderNumber: String) {
+        orders.removeAll { $0.orderNumber == orderNumber }
+        save()
+    }
+
+    func deleteAllOrders() {
+        orders.removeAll()
+        lastSync = nil
+        syncMessage = nil
+        save()
+    }
+
+    /// Creates a user-selected export file; order data remains local unless the user shares it.
+    func makeExportFile() throws -> URL {
+        let encoder = JSONEncoder()
+        encoder.outputFormatting = [.prettyPrinted, .sortedKeys]
+        encoder.dateEncodingStrategy = .iso8601
+        let data = try encoder.encode(orders)
+        let formatter = DateFormatter()
+        formatter.dateFormat = "yyyyMMdd-HHmmss"
+        let url = FileManager.default.temporaryDirectory
+            .appendingPathComponent("ApplePickupTracker-Orders-\\(formatter.string(from: Date())).json")
+        try data.write(to: url, options: .atomic)
+        return url
     }
 
     private func load() {
