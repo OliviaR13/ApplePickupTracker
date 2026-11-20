@@ -30,7 +30,7 @@ enum AppleMailFields {
         for (entity, value) in entities {
             text = text.replacingOccurrences(of: entity, with: value, options: .caseInsensitive)
         }
-        return text.replacingOccurrences(of: "\\r", with: "")
+        return text.replacingOccurrences(of: "\r", with: "")
     }
 
     static func normalizedOrderNumber(in text: String) -> String? {
@@ -78,8 +78,8 @@ enum AppleMailFields {
         guard let marker = markers.first(where: { text.localizedCaseInsensitiveContains($0) }),
               let start = text.range(of: marker, options: .caseInsensitive)?.lowerBound else { return nil }
         var note = String(text[start...])
-        if let stop = note.range(of: "\\n\\n") { note = String(note[..<stop.lowerBound]) }
-        note = note.replacingOccurrences(of: #"\\s+"#, with: " ", options: .regularExpression)
+        if let stop = note.range(of: "\n\n") { note = String(note[..<stop.lowerBound]) }
+        note = note.replacingOccurrences(of: #"\s+"#, with: " ", options: .regularExpression)
             .trimmingCharacters(in: .whitespacesAndNewlines)
         guard note.count >= 8 else { return nil }
         return note.count > 180 ? String(note.prefix(180)) + "…" : note
@@ -88,7 +88,7 @@ enum AppleMailFields {
     /// Heuristic quality score, not a guarantee that Apple's message is genuine.
     static func confidence(orderNumber: String, productName: String, storeName: String, status: PickupStatus) -> Double {
         var score = 0.35
-        if orderNumber.range(of: #"^W\\d{8,}$"#, options: .regularExpression) != nil { score += 0.25 }
+        if orderNumber.range(of: #"^W\d{8,}$"#, options: .regularExpression) != nil { score += 0.25 }
         else if orderNumber.count >= 8 { score += 0.15 }
         if productName != "Apple Store Order" { score += 0.20 }
         if storeName != "零售店" && !isInstruction(storeName) { score += 0.15 }
@@ -110,7 +110,7 @@ enum AppleMailFields {
 
     private static func lines(from text: String) -> [String] {
         text.components(separatedBy: .newlines)
-            .map { $0.replacingOccurrences(of: #"\\s+"#, with: " ", options: .regularExpression).trimmingCharacters(in: .whitespacesAndNewlines) }
+            .map { $0.replacingOccurrences(of: #"\s+"#, with: " ", options: .regularExpression).trimmingCharacters(in: .whitespacesAndNewlines) }
             .filter { !$0.isEmpty }
     }
 
@@ -126,7 +126,7 @@ enum AppleMailFields {
     private static func isLocationValue(_ line: String) -> Bool {
         let trimmed = line.trimmingCharacters(in: .whitespacesAndNewlines)
         guard (2...40).contains(trimmed.count), !isInstruction(trimmed) else { return false }
-        if trimmed.range(of: #"^W\\d{6,}$"#, options: .regularExpression) != nil { return false }
+        if trimmed.range(of: #"^W\d{6,}$"#, options: .regularExpression) != nil { return false }
         if productKeywords.contains(where: { trimmed.localizedCaseInsensitiveContains($0) }) { return false }
         return true
     }
