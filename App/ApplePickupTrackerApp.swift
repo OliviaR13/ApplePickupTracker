@@ -18,7 +18,7 @@ struct ApplePickupTrackerApp: App {
                     await NotificationManager.shared.requestPermission()
                     BackgroundSync.shared.register {
                         do { try await self.syncService.sync() }
-                        catch { self.store.setSyncResult("后台同步失败：\(error.localizedDescription)") }
+                        catch { self.store.setSyncResult("同步失败：\(SyncErrorText.describe(error))") }
                     }
                 }
                 .onChange(of: scenePhase) { _, phase in

@@ -42,24 +42,21 @@ struct ContentView: View {
             .toolbar {
                 ToolbarItem(placement: .topBarLeading) {
                     Button { showingSettings = true } label: { Image(systemName: "gearshape") }
-                        .toolbarGlassButton()
+                        .accessibilityLabel("设置")
                 }
                 ToolbarItem(placement: .topBarTrailing) {
                     Button { Task { await sync() } } label: {
-                        if isSyncing { ProgressView() } else { Label("同步", systemImage: "arrow.clockwise") }
+                        if isSyncing { ProgressView() } else { Image(systemName: "arrow.clockwise") }
                     }
-                    .toolbarGlassButton()
+                    .accessibilityLabel("同步")
                     .disabled(isSyncing || !oauth.isConnected)
                 }
             }
             .safeAreaInset(edge: .bottom, spacing: 10) {
-                if let lastSync = store.lastSync {
+                if let lastSync = store.lastSync, !syncFailed {
                     VStack(spacing: 3) {
-                        Text(store.syncMessage ?? "上次同步")
+                        Text("上次同步")
                             .font(.caption.weight(.semibold))
-                            .foregroundStyle(.primary)
-                            .lineLimit(2)
-                            .multilineTextAlignment(.center)
                         Text(lastSync.formatted(date: .abbreviated, time: .shortened))
                             .font(.caption2)
                             .foregroundStyle(.secondary)
@@ -114,17 +111,33 @@ struct ContentView: View {
             : "连接个人 Outlook 邮箱，自动查找 Apple Store Pickup 订单。"
     }
 
+    private var syncFailed: Bool { store.syncMessage?.hasPrefix("同步失败") == true }
+
     private var syncStatus: some View {
-        HStack(spacing: 12) {
-            if isSyncing { ProgressView() }
-            else { Image(systemName: "checkmark.circle.fill").foregroundStyle(.green) }
-            VStack(alignment: .leading, spacing: 4) {
-                Text(isSyncing ? "正在同步 Outlook" : "最近一次同步").font(.subheadline.weight(.semibold))
+        HStack(alignment: .top, spacing: 12) {
+            if isSyncing {
+                ProgressView()
+            } else if syncFailed {
+                Image(systemName: "exclamationmark.triangle.fill").foregroundStyle(.orange)
+            } else {
+                Image(systemName: "checkmark.circle.fill").foregroundStyle(.green)
+            }
+            VStack(alignment: .leading, spacing: 6) {
+                Text(isSyncing ? "正在同步 Outlook" : (syncFailed ? "同步失败" : "最近一次同步"))
+                    .font(.subheadline.weight(.semibold))
                 if let message = store.syncMessage {
-                    Text(message).font(.footnote).foregroundStyle(.secondary).fixedSize(horizontal: false, vertical: true)
+                    Text(syncFailed ? String(message.dropFirst("同步失败".count)).trimmingCharacters(in: CharacterSet(charactersIn: "：: ")) : message)
+                        .font(.footnote)
+                        .foregroundStyle(.secondary)
+                        .fixedSize(horizontal: false, vertical: true)
+                }
+                if syncFailed && !isSyncing {
+                    Button("重试") { Task { await sync() } }
+                        .font(.subheadline.weight(.semibold))
                 }
             }
-        }.padding(.vertical, 6)
+        }
+        .padding(.vertical, 6)
     }
 
     private func connectAndSync() async {
@@ -138,8 +151,9 @@ struct ContentView: View {
         defer { isSyncing = false }
         do { try await syncService.sync() }
         catch {
-            store.setSyncResult("同步失败：\(error.localizedDescription)")
-            errorMessage = error.localizedDescription
+            let friendly = SyncErrorText.describe(error)
+            store.setSyncResult("同步失败：\(friendly)")
+            errorMessage = friendly
         }
     }
 }
@@ -148,13 +162,17 @@ private struct OrderRow: View {
     let order: PickupOrder
     var body: some View {
         HStack(spacing: 14) {
-            StorePhotoView(storeName: order.storeName, height: 58, cornerRadius: 16)
+            if let storeName = order.recognizedStoreName {
+                StorePhotoView(storeName: storeName, height: 58, cornerRadius: 16)
+            } else {
+                StorePhotoView(storeName: nil, height: 58, cornerRadius: 16)
+            }
             VStack(alignment: .leading, spacing: 5) {
                 Text(order.productName)
                     .font(.headline)
                     .lineLimit(2)
                     .minimumScaleFactor(0.85)
-                Text(order.storeName)
+                Text(order.displayStoreName)
                     .font(.subheadline)
                     .foregroundStyle(.secondary)
                     .lineLimit(2)

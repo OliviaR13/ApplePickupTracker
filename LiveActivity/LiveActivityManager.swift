@@ -13,7 +13,7 @@ enum LiveActivityUpdate: Equatable {
 final class LiveActivityManager {
     func startOrUpdate(for order: PickupOrder) async -> LiveActivityUpdate {
         guard ActivityAuthorizationInfo().areActivitiesEnabled else { return .disabled }
-        let state = PickupAttributes.ContentState(status: order.status, lastUpdated: order.lastUpdated, storeName: order.storeName)
+        let state = PickupAttributes.ContentState(status: order.status, lastUpdated: order.lastUpdated, storeName: order.displayStoreName)
         let content = ActivityContent(state: state, staleDate: Calendar.current.date(byAdding: .hour, value: 12, to: Date()))
         if let existing = Activity<PickupAttributes>.activities.first(where: { $0.attributes.orderNumber == order.orderNumber }) {
             await existing.update(content)

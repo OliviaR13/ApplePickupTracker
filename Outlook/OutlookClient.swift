@@ -4,6 +4,7 @@ struct ParsedPickupMail {
     let orderNumber: String
     let productName: String
     let storeName: String
+    let pickupNote: String?
     let status: PickupStatus
     let messageID: String
     let date: Date
@@ -65,12 +66,7 @@ final class OutlookClient {
                 let sender = message.from?.emailAddress?.address?.lowercased() ?? ""
                 guard Self.isAppleSender(sender) else { continue }
                 appleCount += 1
-                let content = (message.subject ?? "") + "\n" + (message.body?.content ?? "")
-                    .replacingOccurrences(of: "<[^>]+>", with: " ", options: .regularExpression)
-                    .replacingOccurrences(of: "&nbsp;", with: " ")
-                    .replacingOccurrences(of: "&amp;", with: "&")
-                    .replacingOccurrences(of: "&lt;", with: "<")
-                    .replacingOccurrences(of: "&gt;", with: ">")
+                let content = AppleMailFields.plain((message.subject ?? "") + "\n" + (message.body?.content ?? ""))
                 guard let order = Self.firstMatch(#"(?i)(?:order\s*(?:number|#|no\.?)[\s:：#]*)\s*([A-Z0-9-]{8,})|\b(W\d{8,})\b"#, in: content) else { continue }
                 let status = PickupStatus.detect(in: content)
                 guard status != .unknown else { continue }
@@ -81,8 +77,9 @@ final class OutlookClient {
                     return formatter.date(from: value)
                 } ?? Date()
                 parsed.append(ParsedPickupMail(orderNumber: order, productName: Self.productName(from: content),
-                                               storeName: Self.storeName(from: content), status: status,
-                                               messageID: message.id, date: date))
+                                               storeName: AppleMailFields.storeName(from: content),
+                                               pickupNote: AppleMailFields.pickupNote(from: content),
+                                               status: status, messageID: message.id, date: date))
             }
             nextURL = page.nextLink.flatMap(URL.init(string:))
         }
@@ -122,14 +119,4 @@ final class OutlookClient {
         }) ?? "Apple Store Order"
     }
 
-    private static func storeName(from text: String) -> String {
-        let lines = text.components(separatedBy: .newlines)
-        if let index = lines.firstIndex(where: { $0.localizedCaseInsensitiveContains("Apple Store") }) {
-            return lines[index].trimmingCharacters(in: .whitespacesAndNewlines)
-        }
-        if let index = lines.firstIndex(where: { $0.contains("Apple") && ($0.contains("店") || $0.contains("零售店")) }) {
-            return lines[index].trimmingCharacters(in: .whitespacesAndNewlines)
-        }
-        return "Store Pickup"
-    }
 }

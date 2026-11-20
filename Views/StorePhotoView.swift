@@ -27,7 +27,7 @@ enum StoreImageLoader {
 }
 
 struct StorePhotoView: View {
-    let storeName: String
+    let storeName: String?
     var height: CGFloat = 56
     var cornerRadius: CGFloat = 14
 
@@ -46,7 +46,7 @@ struct StorePhotoView: View {
         }
         .frame(width: height, height: height)
         .clipShape(RoundedRectangle(cornerRadius: cornerRadius, style: .continuous))
-        .accessibilityLabel(resolved && image == nil ? "暂无\(storeName)店面照片" : "\(storeName)店面")
+        .accessibilityLabel(image == nil ? "暂无店面照片" : "\(storeName ?? "门店")店面")
         .task(id: storeName) { await load() }
     }
 
@@ -63,7 +63,7 @@ struct StorePhotoView: View {
     private func load() async {
         resolved = false
         image = nil
-        guard let store = await AppleStoreDirectory.shared.store(matching: storeName) else {
+        guard let storeName, let store = await AppleStoreDirectory.shared.store(matching: storeName) else {
             resolved = true
             return
         }
@@ -73,7 +73,7 @@ struct StorePhotoView: View {
 }
 
 struct StorePhotoBanner: View {
-    let storeName: String
+    let storeName: String?
     @State private var image: UIImage?
     @State private var resolved = false
 
@@ -102,7 +102,7 @@ struct StorePhotoBanner: View {
             .frame(height: 210)
             .clipped()
 
-            Text(storeName)
+            Text(storeName ?? "取货门店")
                 .font(.headline)
                 .lineLimit(2)
                 .minimumScaleFactor(0.8)
@@ -119,7 +119,7 @@ struct StorePhotoBanner: View {
     private func load() async {
         resolved = false
         image = nil
-        guard let store = await AppleStoreDirectory.shared.store(matching: storeName) else {
+        guard let storeName, let store = await AppleStoreDirectory.shared.store(matching: storeName) else {
             resolved = true
             return
         }

@@ -54,21 +54,6 @@ private struct ProminentGlassButtonModifier: ViewModifier {
     }
 }
 
-private struct ToolbarGlassButtonModifier: ViewModifier {
-    func body(content: Content) -> some View {
-        if #available(iOS 26, *) {
-            glass(content)
-        } else {
-            content
-        }
-    }
-
-    @available(iOS 26, *)
-    private func glass(_ content: Content) -> some View {
-        content.buttonStyle(.glass)
-    }
-}
-
 private struct GlassButtonModifier: ViewModifier {
     func body(content: Content) -> some View {
         if #available(iOS 26, *) {
@@ -96,13 +81,9 @@ extension View {
     }
 
     /// Secondary action. Uses the system glass button on iOS 26.
+    /// Do not use this on toolbar or navigation-bar buttons: iOS 26 already
+    /// draws one glass circle for them, and a second style nests another ring.
     func liquidGlassButton() -> some View {
         modifier(GlassButtonModifier())
-    }
-
-    /// Navigation-bar control. iOS 26 draws the system glass toolbar button;
-    /// earlier systems keep the plain toolbar item.
-    func toolbarGlassButton() -> some View {
-        modifier(ToolbarGlassButtonModifier())
     }
 }

@@ -5,6 +5,7 @@ struct PickupOrder: Codable, Identifiable, Hashable {
     let orderNumber: String
     var productName: String
     var storeName: String
+    var pickupNote: String?
     var status: PickupStatus
     var lastUpdated: Date
     var sourceMessageID: String
