@@ -14,8 +14,9 @@
 
 ## 自动构建
 
-- 每次 Push 到 `main` 或 `master` 自动构建。
+- Push 到 `main`、`master` 或 `cursor/**`，以及 Pull Request，都会自动构建。
 - 也可以在仓库的 **Actions → iOS Build → Run workflow** 手动触发。
+- Runner 使用 `macos-15`，并通过 `maxim-lobanov/setup-xcode` 选择已安装的 Xcode 26（iOS 26 SDK），以便编译液态玻璃 API。部署目标仍是 iOS 17。
 - 构建成功后打开对应的 workflow run，在 **Artifacts** 下载 `ApplePickupTracker-unsigned-ipa`。
 - 解压下载的 artifact ZIP，里面是 `ApplePickupTracker-unsigned.ipa`。
 

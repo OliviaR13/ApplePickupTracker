@@ -15,7 +15,9 @@ struct SettingsView: View {
                     if oauth.isConnected {
                         Label("Outlook 已连接", systemImage: "checkmark.circle.fill").foregroundStyle(.green)
                         if let email = oauth.accountEmail { LabeledContent("账户", value: email) }
-                        Button("立即同步") { Task { isWorking = true; await onSync(); isWorking = false } }.disabled(isWorking)
+                        Button("立即同步") { Task { isWorking = true; await onSync(); isWorking = false } }
+                            .liquidGlassProminentButton()
+                            .disabled(isWorking)
                         Button("断开 Outlook 连接", role: .destructive) { oauth.disconnect() }
                     } else {
                         Text("使用个人 Microsoft 账户登录，并以只读权限查找 Apple 订单邮件。").foregroundStyle(.secondary)
@@ -26,7 +28,9 @@ struct SettingsView: View {
                                 catch { message = error.localizedDescription }
                                 isWorking = false
                             }
-                        }.disabled(isWorking)
+                        }
+                        .liquidGlassProminentButton()
+                        .disabled(isWorking)
                     }
                 }
                 Section("隐私与权限") {
@@ -40,7 +44,7 @@ struct SettingsView: View {
                 }
             }
             .navigationTitle("设置").navigationBarTitleDisplayMode(.inline)
-            .toolbar { ToolbarItem(placement: .topBarTrailing) { Button("完成") { dismiss() } } }
+            .toolbar { ToolbarItem(placement: .topBarTrailing) { Button("完成") { dismiss() }.toolbarGlassButton() } }
             .alert("Outlook", isPresented: Binding(get: { message != nil }, set: { if !$0 { message = nil } })) {
                 Button("好", role: .cancel) { message = nil }
             } message: { Text(message ?? "") }

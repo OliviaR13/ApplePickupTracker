@@ -5,6 +5,8 @@ on:
     branches:
       - main
       - master
+      - 'cursor/**'
+  pull_request:
   workflow_dispatch:
 
 permissions:
@@ -24,10 +26,24 @@ jobs:
       - name: Check out source
         uses: actions/checkout@v4
 
-      - name: Select Xcode
+      - name: Select Xcode 26
+        uses: maxim-lobanov/setup-xcode@v1
+        with:
+          xcode-version: "26"
+
+      - name: Show Xcode and iOS SDK
         run: |
           xcodebuild -version
           xcode-select -p
+          sdk="$(xcrun --sdk iphoneos --show-sdk-version)"
+          echo "iPhoneOS SDK ${sdk}"
+          case "${sdk}" in
+            26.*) ;;
+            *)
+              echo "iOS 26 SDK is required to compile Liquid Glass APIs (got ${sdk})." >&2
+              exit 1
+              ;;
+          esac
 
       - name: Install XcodeGen
         run: brew install xcodegen

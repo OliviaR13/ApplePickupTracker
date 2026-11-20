@@ -15,6 +15,20 @@
     <array><string>com.example.ApplePickupTracker.refresh</string></array>
     <key>NSSupportsLiveActivities</key><true/>
     <key>NSUserNotificationUsageDescription</key><string>当 Apple Store 订单可以取货时通知你。</string>
-    <key>UILaunchScreen</key><dict/>
+    <key>UILaunchStoryboardName</key><string>LaunchScreen</string>
+    <key>UISupportedInterfaceOrientations</key>
+    <array>
+        <string>UIInterfaceOrientationPortrait</string>
+        <string>UIInterfaceOrientationPortraitUpsideDown</string>
+        <string>UIInterfaceOrientationLandscapeLeft</string>
+        <string>UIInterfaceOrientationLandscapeRight</string>
+    </array>
+    <key>UISupportedInterfaceOrientations~ipad</key>
+    <array>
+        <string>UIInterfaceOrientationPortrait</string>
+        <string>UIInterfaceOrientationPortraitUpsideDown</string>
+        <string>UIInterfaceOrientationLandscapeLeft</string>
+        <string>UIInterfaceOrientationLandscapeRight</string>
+    </array>
 </dict>
 </plist>

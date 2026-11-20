@@ -42,23 +42,35 @@ struct ContentView: View {
             .toolbar {
                 ToolbarItem(placement: .topBarLeading) {
                     Button { showingSettings = true } label: { Image(systemName: "gearshape") }
+                        .toolbarGlassButton()
                 }
                 ToolbarItem(placement: .topBarTrailing) {
                     Button { Task { await sync() } } label: {
                         if isSyncing { ProgressView() } else { Label("同步", systemImage: "arrow.clockwise") }
-                    }.disabled(isSyncing || !oauth.isConnected)
+                    }
+                    .toolbarGlassButton()
+                    .disabled(isSyncing || !oauth.isConnected)
                 }
             }
-            .safeAreaInset(edge: .bottom) {
+            .safeAreaInset(edge: .bottom, spacing: 10) {
                 if let lastSync = store.lastSync {
                     VStack(spacing: 3) {
                         Text(store.syncMessage ?? "上次同步")
-                            .lineLimit(2).multilineTextAlignment(.center)
+                            .font(.caption.weight(.semibold))
+                            .foregroundStyle(.primary)
+                            .lineLimit(2)
+                            .multilineTextAlignment(.center)
                         Text(lastSync.formatted(date: .abbreviated, time: .shortened))
+                            .font(.caption2)
+                            .foregroundStyle(.secondary)
                     }
-                    .font(.caption).foregroundStyle(.secondary)
-                    .frame(maxWidth: .infinity).padding(.horizontal, 16).padding(.vertical, 9)
-                    .background(.bar)
+                    .padding(.horizontal, 18)
+                    .padding(.vertical, 10)
+                    .frame(maxWidth: 560)
+                    .liquidGlass(in: RoundedRectangle(cornerRadius: 22, style: .continuous))
+                    .frame(maxWidth: .infinity)
+                    .padding(.horizontal, 16)
+                    .padding(.bottom, 8)
                 }
             }
             .sheet(isPresented: $showingSettings) { SettingsView(onSync: { await sync() }) }
@@ -85,7 +97,8 @@ struct ContentView: View {
                             if oauth.isConnected { await sync() } else { await connectAndSync() }
                         }
                     }
-                    .buttonStyle(.borderedProminent).controlSize(.large)
+                    .controlSize(.large)
+                    .liquidGlassProminentButton()
                 }
                 if let message = store.syncMessage {
                     Text(message).font(.footnote).foregroundStyle(.secondary).frame(maxWidth: 300)

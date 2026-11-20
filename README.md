@@ -24,7 +24,7 @@ Native SwiftUI app prototype for tracking Apple Store Pickup order emails from G
 
 ## Build on macOS
 
-Requires macOS, Xcode 16 or later, iOS 17 SDK, and XcodeGen.
+Requires macOS, Xcode 26 or later (iOS 26 SDK), an iOS 17 deployment target, and XcodeGen. Liquid Glass APIs are compiled from the iOS 26 SDK and used at runtime only on iOS 26; earlier systems keep a material fallback.
 
 ```bash
 brew install xcodegen
@@ -72,4 +72,4 @@ No client secret belongs in the iOS app. The OAuth flow uses PKCE.
 
 ## GitHub Actions build (Windows-friendly)
 
-The repository includes `.github/workflows/ios-build.yml`. Pushes to `main` or `master` run an unsigned iOS build on a GitHub-hosted macOS runner and upload `ApplePickupTracker-unsigned.ipa` as the `ApplePickupTracker-unsigned-ipa` artifact (14-day retention). See [`GITHUB_SETUP.md`](GITHUB_SETUP.md) for the Windows/GitHub Desktop setup and download steps.
+The repository includes `.github/workflows/ios-build.yml`. Pushes to `main`, `master`, or `cursor/**`, and pull requests, run an unsigned iOS build on a GitHub-hosted macOS 15 runner with Xcode 26 selected, and upload `ApplePickupTracker-unsigned.ipa` as the `ApplePickupTracker-unsigned-ipa` artifact (14-day retention). See [`GITHUB_SETUP.md`](GITHUB_SETUP.md) for the Windows/GitHub Desktop setup and download steps.

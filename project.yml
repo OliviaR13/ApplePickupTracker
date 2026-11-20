@@ -24,12 +24,15 @@ targets:
       - path: LiveActivity
       - path: Notifications
       - path: Views
+      - path: Resources/LaunchScreen.storyboard
+        buildPhase: resources
     info:
       path: Resources/Info.plist
     settings:
       base:
         PRODUCT_BUNDLE_IDENTIFIER: com.example.ApplePickupTracker
         PRODUCT_NAME: ApplePickupTracker
+        GENERATE_INFOPLIST_FILE: NO
         INFOPLIST_KEY_CFBundleDisplayName: Apple Pickup Tracker
         INFOPLIST_KEY_NSSupportsLiveActivities: YES
         CODE_SIGN_ENTITLEMENTS: Resources/App.entitlements
