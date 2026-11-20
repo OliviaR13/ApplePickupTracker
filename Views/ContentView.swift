@@ -42,23 +42,35 @@ struct ContentView: View {
             .toolbar {
                 ToolbarItem(placement: .topBarLeading) {
                     Button { showingSettings = true } label: { Image(systemName: "gearshape") }
+                        .toolbarGlassButton()
                 }
                 ToolbarItem(placement: .topBarTrailing) {
                     Button { Task { await sync() } } label: {
                         if isSyncing { ProgressView() } else { Label("同步", systemImage: "arrow.clockwise") }
-                    }.disabled(isSyncing || !oauth.isConnected)
+                    }
+                    .toolbarGlassButton()
+                    .disabled(isSyncing || !oauth.isConnected)
                 }
             }
-            .safeAreaInset(edge: .bottom) {
+            .safeAreaInset(edge: .bottom, spacing: 10) {
                 if let lastSync = store.lastSync {
                     VStack(spacing: 3) {
                         Text(store.syncMessage ?? "上次同步")
-                            .lineLimit(2).multilineTextAlignment(.center)
+                            .font(.caption.weight(.semibold))
+                            .foregroundStyle(.primary)
+                            .lineLimit(2)
+                            .multilineTextAlignment(.center)
                         Text(lastSync.formatted(date: .abbreviated, time: .shortened))
+                            .font(.caption2)
+                            .foregroundStyle(.secondary)
                     }
-                    .font(.caption).foregroundStyle(.secondary)
-                    .frame(maxWidth: .infinity).padding(.horizontal, 16).padding(.vertical, 9)
-                    .background(.bar)
+                    .padding(.horizontal, 18)
+                    .padding(.vertical, 10)
+                    .frame(maxWidth: 560)
+                    .liquidGlass(in: RoundedRectangle(cornerRadius: 22, style: .continuous))
+                    .frame(maxWidth: .infinity)
+                    .padding(.horizontal, 16)
+                    .padding(.bottom, 8)
                 }
             }
             .sheet(isPresented: $showingSettings) { SettingsView(onSync: { await sync() }) }
@@ -85,7 +97,8 @@ struct ContentView: View {
                             if oauth.isConnected { await sync() } else { await connectAndSync() }
                         }
                     }
-                    .buttonStyle(.borderedProminent).controlSize(.large)
+                    .controlSize(.large)
+                    .liquidGlassProminentButton()
                 }
                 if let message = store.syncMessage {
                     Text(message).font(.footnote).foregroundStyle(.secondary).frame(maxWidth: 300)
@@ -135,18 +148,48 @@ private struct OrderRow: View {
     let order: PickupOrder
     var body: some View {
         HStack(spacing: 14) {
-            Image(systemName: "bag.fill")
-                .font(.title2).foregroundStyle(order.status == .readyForPickup ? .green : .primary)
-                .frame(width: 48, height: 48)
-                .background(.quaternary, in: RoundedRectangle(cornerRadius: 14))
+            StorePhotoView(storeName: order.storeName, height: 58, cornerRadius: 16)
             VStack(alignment: .leading, spacing: 5) {
-                Text(order.productName).font(.headline).lineLimit(2)
-                Text(order.storeName).font(.subheadline).foregroundStyle(.secondary).lineLimit(2)
-                Text(order.status.title).font(.subheadline.weight(.semibold))
-                    .foregroundStyle(order.status == .readyForPickup ? .green : .secondary)
+                Text(order.productName)
+                    .font(.headline)
+                    .lineLimit(2)
+                    .minimumScaleFactor(0.85)
+                Text(order.storeName)
+                    .font(.subheadline)
+                    .foregroundStyle(.secondary)
+                    .lineLimit(2)
+                StatusBadge(status: order.status)
             }
             Spacer(minLength: 4)
-            Image(systemName: "chevron.right").font(.caption.weight(.semibold)).foregroundStyle(.tertiary)
-        }.padding(.vertical, 4).contentShape(Rectangle())
+        }
+        .padding(.vertical, 4)
+        .contentShape(Rectangle())
+        .accessibilityElement(children: .combine)
+    }
+}
+
+struct StatusBadge: View {
+    let status: PickupStatus
+    var body: some View {
+        Label(status.title, systemImage: status.symbolName)
+            .font(.caption.weight(.semibold))
+            .foregroundStyle(status.tint)
+            .padding(.horizontal, 8)
+            .padding(.vertical, 4)
+            .background(status.tint.opacity(0.14), in: Capsule())
+            .lineLimit(1)
+            .minimumScaleFactor(0.8)
+    }
+}
+
+extension PickupStatus {
+    var tint: Color {
+        switch self {
+        case .readyForPickup: .green
+        case .shippingToStore: .blue
+        case .processing: .orange
+        case .cancelled: .red
+        case .ordered, .pickedUp, .unknown: .secondary
+        }
     }
 }

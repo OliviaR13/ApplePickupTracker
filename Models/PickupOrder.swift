@@ -57,6 +57,18 @@ enum PickupStatus: String, Codable, CaseIterable, Comparable {
         }
     }
 
+    var symbolName: String {
+        switch self {
+        case .ordered: "bag"
+        case .processing: "gearshape.2"
+        case .shippingToStore: "shippingbox"
+        case .readyForPickup: "checkmark.circle.fill"
+        case .pickedUp: "bag.fill"
+        case .cancelled: "xmark.circle"
+        case .unknown: "questionmark.circle"
+        }
+    }
+
     var progress: Double {
         switch self {
         case .ordered: 0.15
