@@ -16,10 +16,14 @@ final class OrderStore: ObservableObject {
         load()
     }
 
+    /// Inserts or updates one order. Pass `persist: false` when applying many messages in a row,
+    /// then call `commit()` once so the list is sorted and written to disk a single time.
     @discardableResult
-    func upsert(orderNumber: String, product: String, store: String, pickupNote: String? = nil, status: PickupStatus, messageID: String, date: Date) -> Bool {
-        let previousStatus = orders.first(where: { $0.orderNumber == orderNumber })?.status
-        if let index = orders.firstIndex(where: { $0.orderNumber == orderNumber }) {
+    func upsert(orderNumber: String, product: String, store: String, pickupNote: String? = nil, status: PickupStatus, messageID: String, date: Date, persist: Bool = true) -> Bool {
+        let existing = orders.firstIndex(where: { $0.orderNumber == orderNumber })
+        let previousStatus = existing.map { orders[$0].status }
+        let target: Int
+        if let index = existing {
             orders[index].apply(status: status, at: date, sourceMessageID: messageID)
             if orders[index].productName.isEmpty || orders[index].productName == "Apple Store Order", !product.isEmpty {
                 orders[index].productName = product
@@ -28,15 +32,22 @@ final class OrderStore: ObservableObject {
                 orders[index].storeName = store
             }
             if let pickupNote, !pickupNote.isEmpty { orders[index].pickupNote = pickupNote }
+            target = index
         } else {
             orders.append(PickupOrder(orderNumber: orderNumber, productName: product, storeName: store, pickupNote: pickupNote,
                                       status: status, lastUpdated: date, sourceMessageID: messageID,
                                       history: [OrderEvent(status: status, date: date)]))
+            target = orders.count - 1
         }
+        let becameReady = orders[target].status == .readyForPickup && previousStatus != .readyForPickup
+        if persist { commit() }
+        return becameReady
+    }
+
+    /// Sorts newest-first and saves to disk.
+    func commit() {
         orders.sort { $0.lastUpdated > $1.lastUpdated }
         save()
-        let currentStatus = orders.first(where: { $0.orderNumber == orderNumber })?.status
-        return currentStatus == .readyForPickup && previousStatus != .readyForPickup
     }
 
     func setSyncResult(_ message: String) {

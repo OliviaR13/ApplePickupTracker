@@ -86,35 +86,41 @@ enum PickupStatus: String, Codable, CaseIterable, Comparable {
     }
 
     static func detect(in text: String) -> PickupStatus {
+        // Strip every kind of whitespace (including real newlines) so wrapped phrases still match.
         let value = text.lowercased()
-            .replacingOccurrences(of: " ", with: "")
-            .replacingOccurrences(of: "\\n", with: "")
+            .replacingOccurrences(of: "\u{2019}", with: "'")
+            .components(separatedBy: .whitespacesAndNewlines)
+            .joined()
 
         // Terminal states take precedence over earlier status wording in the same email.
         if value.contains("pickedup") || value.contains("collectedyourorder")
-            || value.contains("已取貨") || value.contains("已領取") || value.contains("訂單已取貨") {
+            || value.contains("已取貨") || value.contains("已領取") || value.contains("訂單已取貨")
+            || value.contains("已取货") || value.contains("已领取") || value.contains("订单已取货") {
             return .pickedUp
         }
         if value.contains("cancelled") || value.contains("canceled")
-            || value.contains("已取消") || value.contains("訂單取消") {
+            || value.contains("已取消") || value.contains("訂單取消") || value.contains("订单取消") {
             return .cancelled
         }
         if value.contains("readyforpickup") || value.contains("youritemisready") || value.contains("readytopickup")
             || value.contains("已備妥") || value.contains("可供於零售店營業時間內取貨")
-            || value.contains("可供取貨") || value.contains("可以取貨") {
+            || value.contains("已备妥") || value.contains("可供于零售店营业时间内取货")
+            || value.contains("可供取貨") || value.contains("可以取貨") || value.contains("可供取货") || value.contains("可以取货") {
             return .readyForPickup
         }
         if value.contains("shippingtostore") || value.contains("onitswaytothestore")
-            || value.contains("運送至零售店") || value.contains("正在運送到零售店") {
+            || value.contains("運送至零售店") || value.contains("正在運送到零售店")
+            || value.contains("运送至零售店") || value.contains("正在运送到零售店") {
             return .shippingToStore
         }
         if value.contains("processing") || value.contains("preparingyourorder") || value.contains("beingprepared")
-            || value.contains("正在處理") || value.contains("正在準備") {
+            || value.contains("正在處理") || value.contains("正在準備") || value.contains("正在处理") || value.contains("正在准备") {
             return .processing
         }
         if value.contains("orderconfirmation") || value.contains("we'vereceivedyourorder")
             || value.contains("wehavereceivedyourorder") || value.contains("訂單確認")
-            || value.contains("已收到你的訂單") || value.contains("已收到訂單") {
+            || value.contains("已收到你的訂單") || value.contains("已收到訂單")
+            || value.contains("订单确认") || value.contains("已收到你的订单") || value.contains("已收到订单") {
             return .ordered
         }
         return .unknown

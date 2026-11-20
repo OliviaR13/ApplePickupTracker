@@ -11,16 +11,34 @@ final class SyncService {
         self.store = store
     }
 
+    /// Bump when the mail parser changes so the next sync re-scans the full window.
+    private static let parserVersion = 2
+    private static let lastScanKey = "outlook.lastScanDate"
+    private static let parserVersionKey = "outlook.parserVersion"
+
+    /// Incremental sync: only look at mail since the last successful scan (3-day overlap).
+    /// Falls back to a full scan on first run, when no orders are stored, or after a parser update.
+    private func scanStart() -> Date? {
+        let defaults = UserDefaults.standard
+        guard defaults.integer(forKey: Self.parserVersionKey) == Self.parserVersion,
+              !store.orders.isEmpty,
+              let last = defaults.object(forKey: Self.lastScanKey) as? Date else { return nil }
+        return Calendar.current.date(byAdding: .day, value: -3, to: last)
+    }
+
     func sync() async throws {
-        let result = try await outlook.fetchAppleOrderMessages()
+        let scanStartedAt = Date()
+        let result = try await outlook.fetchAppleOrderMessages(since: scanStart())
         var newlyReady: [PickupOrder] = []
         for message in result.messages {
             let becameReady = store.upsert(orderNumber: message.orderNumber, product: message.productName, store: message.storeName,
-                                           pickupNote: message.pickupNote, status: message.status, messageID: message.messageID, date: message.date)
+                                           pickupNote: message.pickupNote, status: message.status, messageID: message.messageID, date: message.date,
+                                           persist: false)
             if becameReady, let order = store.orders.first(where: { $0.orderNumber == message.orderNumber }) {
                 newlyReady.append(order)
             }
         }
+        if !result.messages.isEmpty { store.commit() }
         for order in store.orders where order.status != .pickedUp && order.status != .cancelled {
             await activity.startOrUpdate(for: order)
         }
@@ -35,6 +53,8 @@ final class SyncService {
             summary = "同步完成：扫描 \(result.scannedCount) 封邮件，识别到 \(result.messages.count) 条订单状态。"
         }
         store.setSyncResult(summary)
+        UserDefaults.standard.set(scanStartedAt, forKey: Self.lastScanKey)
+        UserDefaults.standard.set(Self.parserVersion, forKey: Self.parserVersionKey)
         BackgroundSync.shared.schedule()
     }
 }

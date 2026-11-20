@@ -39,14 +39,24 @@ final class OutlookClient {
     private let oauth: OutlookOAuth
     init(oauth: OutlookOAuth) { self.oauth = oauth }
 
-    func fetchAppleOrderMessages() async throws -> OutlookFetchResult {
-        let token = try await oauth.validAccessToken()
+    private nonisolated(unsafe) static let isoPlain = ISO8601DateFormatter()
+    private nonisolated(unsafe) static let isoFractional: ISO8601DateFormatter = {
+        let formatter = ISO8601DateFormatter()
+        formatter.formatOptions = [.withInternetDateTime, .withFractionalSeconds]
+        return formatter
+    }()
+    private nonisolated(unsafe) static let orderRegex = try? NSRegularExpression(
+        pattern: #"(?i)(?:order\s*(?:number|#|no\.?)[\s:：#]*)\s*([A-Z0-9-]{8,})|\b(W\d{8,})\b"#)
+
+    /// - Parameter since: only fetch mail received after this date. Defaults to the last 365 days.
+    func fetchAppleOrderMessages(since: Date? = nil) async throws -> OutlookFetchResult {
+        let windowStart = since ?? Calendar.current.date(byAdding: .day, value: -365, to: Date())!
         var components = URLComponents(string: "https://graph.microsoft.com/v1.0/me/messages")!
         components.queryItems = [
             .init(name: "$top", value: "100"),
             .init(name: "$select", value: "id,receivedDateTime,from,subject,body"),
             .init(name: "$orderby", value: "receivedDateTime desc"),
-            .init(name: "$filter", value: "receivedDateTime ge \(ISO8601DateFormatter().string(from: Calendar.current.date(byAdding: .day, value: -365, to: Date())!))")
+            .init(name: "$filter", value: "receivedDateTime ge \(Self.isoPlain.string(from: windowStart))")
         ]
         var nextURL: URL? = components.url
         var parsed: [ParsedPickupMail] = []
@@ -54,6 +64,8 @@ final class OutlookClient {
         var appleCount = 0
 
         while let url = nextURL, scanned < 1000 {
+            // Fetch per page: validAccessToken() refreshes when needed, so long scans don't use an expired token.
+            let token = try await oauth.validAccessToken()
             var request = URLRequest(url: url)
             request.setValue("Bearer \(token)", forHTTPHeaderField: "Authorization")
             request.setValue("outlook.body-content-type=\"text\"", forHTTPHeaderField: "Prefer")
@@ -67,14 +79,11 @@ final class OutlookClient {
                 guard Self.isAppleSender(sender) else { continue }
                 appleCount += 1
                 let content = AppleMailFields.plain((message.subject ?? "") + "\n" + (message.body?.content ?? ""))
-                guard let order = Self.firstMatch(#"(?i)(?:order\s*(?:number|#|no\.?)[\s:：#]*)\s*([A-Z0-9-]{8,})|\b(W\d{8,})\b"#, in: content) else { continue }
+                guard let order = Self.firstMatch(Self.orderRegex, in: content) else { continue }
                 let status = PickupStatus.detect(in: content)
                 guard status != .unknown else { continue }
-                let date = message.receivedDateTime.flatMap { value -> Date? in
-                    if let date = ISO8601DateFormatter().date(from: value) { return date }
-                    let formatter = ISO8601DateFormatter()
-                    formatter.formatOptions = [.withInternetDateTime, .withFractionalSeconds]
-                    return formatter.date(from: value)
+                let date = message.receivedDateTime.flatMap { value in
+                    Self.isoPlain.date(from: value) ?? Self.isoFractional.date(from: value)
                 } ?? Date()
                 parsed.append(ParsedPickupMail(orderNumber: order, productName: Self.productName(from: content),
                                                storeName: AppleMailFields.storeName(from: content),
@@ -101,8 +110,8 @@ final class OutlookClient {
         return domain == "apple.com" || domain.hasSuffix(".apple.com")
     }
 
-    private static func firstMatch(_ pattern: String, in text: String) -> String? {
-        guard let regex = try? NSRegularExpression(pattern: pattern),
+    private static func firstMatch(_ regex: NSRegularExpression?, in text: String) -> String? {
+        guard let regex,
               let match = regex.firstMatch(in: text, range: NSRange(text.startIndex..., in: text)) else { return nil }
         for index in 1..<match.numberOfRanges {
             if let range = Range(match.range(at: index), in: text) { return String(text[range]) }
