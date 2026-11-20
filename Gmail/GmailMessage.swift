@@ -24,19 +24,33 @@ struct GmailMessage: Decodable {
     }
 
     var decodedText: String {
-        var chunks: [String] = []
+        var plainText: [String] = []
+        var htmlText: [String] = []
+
         func walk(_ part: Payload) {
-            if let data = part.body?.data, let decoded = Self.decodeBase64URL(data) {
-                chunks.append(String(decoding: decoded, as: UTF8.self))
+            if let data = part.body?.data,
+               let decoded = Self.decodeBase64URL(data),
+               let text = String(data: decoded, encoding: .utf8) {
+                switch part.mimeType?.lowercased() {
+                case "text/plain": plainText.append(text)
+                case "text/html": htmlText.append(text)
+                default: break
+                }
             }
             (part.parts ?? []).forEach(walk)
         }
+
         if let payload { walk(payload) }
-        return (chunks.joined(separator: "\n") + "\n" + (snippet ?? ""))
+        let selected = plainText.isEmpty ? htmlText : plainText
+        let body = selected.joined(separator: "\n")
             .replacingOccurrences(of: "<[^>]+>", with: " ", options: .regularExpression)
             .replacingOccurrences(of: "&nbsp;", with: " ")
             .replacingOccurrences(of: "&amp;", with: "&")
+            .replacingOccurrences(of: "&lt;", with: "<")
+            .replacingOccurrences(of: "&gt;", with: ">")
             .replacingOccurrences(of: "&#39;", with: "'")
+            .replacingOccurrences(of: "&quot;", with: "\"")
+        return (body + "\n" + (snippet ?? "")).trimmingCharacters(in: .whitespacesAndNewlines)
     }
 
     var receivedAt: Date {
