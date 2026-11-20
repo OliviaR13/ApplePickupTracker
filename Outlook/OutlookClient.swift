@@ -34,7 +34,15 @@ private struct GraphMessagePage: Decodable {
     }
 }
 
-private extension ISO8601DateFormatter {\n    static let withFractionalSeconds: ISO8601DateFormatter = {\n        let formatter = ISO8601DateFormatter()\n        formatter.formatOptions = [.withInternetDateTime, .withFractionalSeconds]\n        return formatter\n    }()\n}\n\nfinal class OutlookClient {
+private extension ISO8601DateFormatter {
+    static let withFractionalSeconds: ISO8601DateFormatter = {
+        let formatter = ISO8601DateFormatter()
+        formatter.formatOptions = [.withInternetDateTime, .withFractionalSeconds]
+        return formatter
+    }()
+}
+
+final class OutlookClient {
     private let oauth: OutlookOAuth
     init(oauth: OutlookOAuth) { self.oauth = oauth }
 
@@ -65,7 +73,8 @@ private extension ISO8601DateFormatter {\n    static let withFractionalSeconds: 
                 let sender = message.from?.emailAddress?.address?.lowercased() ?? ""
                 guard Self.isAppleSender(sender) else { continue }
                 appleCount += 1
-                let content = (message.subject ?? "") + "\n" + (message.body?.content ?? "")
+                let content = (message.subject ?? "") + "
+" + (message.body?.content ?? "")
                     .replacingOccurrences(of: "<[^>]+>", with: " ", options: .regularExpression)
                     .replacingOccurrences(of: "&nbsp;", with: " ")
                     .replacingOccurrences(of: "&amp;", with: "&")
