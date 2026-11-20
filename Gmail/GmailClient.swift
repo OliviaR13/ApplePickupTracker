@@ -9,39 +9,66 @@ struct ParsedPickupMail {
     let date: Date
 }
 
+struct GmailFetchResult {
+    let messages: [ParsedPickupMail]
+    let scannedCount: Int
+    let appleSenderCount: Int
+}
+
 final class GmailClient {
     private let oauth: GmailOAuth
 
     init(oauth: GmailOAuth) { self.oauth = oauth }
 
-    func fetchAppleOrderMessages() async throws -> [ParsedPickupMail] {
+    func fetchAppleOrderMessages() async throws -> GmailFetchResult {
         let token = try await oauth.validAccessToken()
         var components = URLComponents(string: "https://gmail.googleapis.com/gmail/v1/users/me/messages")!
         components.queryItems = [
-            .init(name: "q", value: "newer_than:365d {from:(apple.com) from:(email.apple.com)} {subject:(order) subject:(pickup) subject:(ready)}"),
-            .init(name: "maxResults", value: "50")
+            .init(name: "q", value: "newer_than:365d {from:apple.com from:email.apple.com}"),
+            .init(name: "maxResults", value: "100")
         ]
         var listRequest = URLRequest(url: components.url!)
         listRequest.setValue("Bearer \(token)", forHTTPHeaderField: "Authorization")
-        let (listData, _) = try await URLSession.shared.data(for: listRequest)
+        listRequest.timeoutInterval = 30
+        let (listData, listResponse) = try await URLSession.shared.data(for: listRequest)
+        try Self.validate(listResponse, data: listData)
         let list = try JSONDecoder().decode(GmailMessageList.self, from: listData)
+
         var results: [ParsedPickupMail] = []
-        for item in list.messages ?? [] {
+        var appleSenderCount = 0
+        let candidates = list.messages ?? []
+
+        for item in candidates {
             var request = URLRequest(url: URL(string: "https://gmail.googleapis.com/gmail/v1/users/me/messages/\(item.id)?format=full")!)
             request.setValue("Bearer \(token)", forHTTPHeaderField: "Authorization")
-            let (data, _) = try await URLSession.shared.data(for: request)
+            request.timeoutInterval = 30
+            let (data, response) = try await URLSession.shared.data(for: request)
+            try Self.validate(response, data: data)
             let message = try JSONDecoder().decode(GmailMessage.self, from: data)
             let sender = message.headerMap["from"] ?? ""
             guard Self.isAppleSender(sender) else { continue }
+            appleSenderCount += 1
+
             let content = (message.headerMap["subject"] ?? "") + "\n" + message.decodedText
-            guard let order = Self.firstMatch(#"(?i)(?:order\s*(?:number|#|no\.?)[\s:：#]*)\s*([A-Z0-9-]{8,})|W\d{8,}"#, in: content) else { continue }
+            guard let order = Self.firstMatch(#"(?i)(?:order\s*(?:number|#|no\.?)[\s:：#]*)\s*([A-Z0-9-]{8,})|\b(W\d{8,})\b"#, in: content) else { continue }
             let status = PickupStatus.detect(in: content)
             guard status != .unknown else { continue }
             results.append(ParsedPickupMail(orderNumber: order, productName: Self.productName(from: content),
                                             storeName: Self.storeName(from: content), status: status,
                                             messageID: message.id, date: message.receivedAt))
         }
-        return results.sorted { $0.date < $1.date }
+        return GmailFetchResult(messages: results.sorted { $0.date < $1.date },
+                                scannedCount: candidates.count, appleSenderCount: appleSenderCount)
+    }
+
+    private static func validate(_ response: URLResponse, data: Data) throws {
+        guard let http = response as? HTTPURLResponse else { throw GmailError.requestFailed }
+        guard (200..<300).contains(http.statusCode) else {
+            let payload = (try? JSONSerialization.jsonObject(with: data)) as? [String: Any]
+            let error = payload?["error"] as? [String: Any]
+            let message = error?["message"] as? String
+            throw GmailError.apiFailure(status: http.statusCode, message: message ?? "Google API request failed")
+        }
     }
 
     private static func isAppleSender(_ header: String) -> Bool {
@@ -55,8 +82,10 @@ final class GmailClient {
     private static func firstMatch(_ pattern: String, in text: String) -> String? {
         guard let regex = try? NSRegularExpression(pattern: pattern),
               let match = regex.firstMatch(in: text, range: NSRange(text.startIndex..., in: text)) else { return nil }
-        let range = (1..<match.numberOfRanges).compactMap { Range(match.range(at: $0), in: text) }.first
-        return range.map { String(text[$0]) } ?? Range(match.range, in: text).map { String(text[$0]) }
+        for index in 1..<match.numberOfRanges {
+            if let range = Range(match.range(at: index), in: text) { return String(text[range]) }
+        }
+        return Range(match.range, in: text).map { String(text[$0]) }
     }
 
     private static func productName(from text: String) -> String {
@@ -70,5 +99,19 @@ final class GmailClient {
             return lines[index].trimmingCharacters(in: .whitespacesAndNewlines)
         }
         return "Store Pickup"
+    }
+}
+
+enum GmailError: LocalizedError {
+    case requestFailed
+    case apiFailure(status: Int, message: String)
+
+    var errorDescription: String? {
+        switch self {
+        case .requestFailed:
+            return "无法连接 Gmail。请检查网络后重试。"
+        case let .apiFailure(status, message):
+            return "Gmail API 错误（HTTP \(status)）：\(message)"
+        }
     }
 }
