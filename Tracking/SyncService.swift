@@ -16,7 +16,7 @@ final class SyncService {
         var newlyReady: [PickupOrder] = []
         for message in result.messages {
             let becameReady = store.upsert(orderNumber: message.orderNumber, product: message.productName, store: message.storeName,
-                                           status: message.status, messageID: message.messageID, date: message.date)
+                                           pickupNote: message.pickupNote, status: message.status, messageID: message.messageID, date: message.date)
             if becameReady, let order = store.orders.first(where: { $0.orderNumber == message.orderNumber }) {
                 newlyReady.append(order)
             }

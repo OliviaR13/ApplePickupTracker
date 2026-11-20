@@ -62,7 +62,7 @@ struct SettingsView: View {
             }
             .navigationTitle("设置").navigationBarTitleDisplayMode(.inline)
             .task { activitiesEnabled = ActivityAuthorizationInfo().areActivitiesEnabled }
-            .toolbar { ToolbarItem(placement: .topBarTrailing) { Button("完成") { dismiss() }.toolbarGlassButton() } }
+            .toolbar { ToolbarItem(placement: .topBarTrailing) { Button("完成") { dismiss() } } }
             .alert("Outlook", isPresented: Binding(get: { message != nil }, set: { if !$0 { message = nil } })) {
                 Button("好", role: .cancel) { message = nil }
             } message: { Text(message ?? "") }

@@ -17,14 +17,19 @@ final class OrderStore: ObservableObject {
     }
 
     @discardableResult
-    func upsert(orderNumber: String, product: String, store: String, status: PickupStatus, messageID: String, date: Date) -> Bool {
+    func upsert(orderNumber: String, product: String, store: String, pickupNote: String? = nil, status: PickupStatus, messageID: String, date: Date) -> Bool {
         let previousStatus = orders.first(where: { $0.orderNumber == orderNumber })?.status
         if let index = orders.firstIndex(where: { $0.orderNumber == orderNumber }) {
             orders[index].apply(status: status, at: date, sourceMessageID: messageID)
-            if orders[index].productName.isEmpty && !product.isEmpty { orders[index].productName = product }
-            if orders[index].storeName.isEmpty && !store.isEmpty { orders[index].storeName = store }
+            if orders[index].productName.isEmpty || orders[index].productName == "Apple Store Order", !product.isEmpty {
+                orders[index].productName = product
+            }
+            if shouldAdoptStore(current: orders[index].storeName, new: store) {
+                orders[index].storeName = store
+            }
+            if let pickupNote, !pickupNote.isEmpty { orders[index].pickupNote = pickupNote }
         } else {
-            orders.append(PickupOrder(orderNumber: orderNumber, productName: product, storeName: store,
+            orders.append(PickupOrder(orderNumber: orderNumber, productName: product, storeName: store, pickupNote: pickupNote,
                                       status: status, lastUpdated: date, sourceMessageID: messageID,
                                       history: [OrderEvent(status: status, date: date)]))
         }
@@ -43,6 +48,25 @@ final class OrderStore: ObservableObject {
         guard let data = try? Data(contentsOf: fileURL),
               let decoded = try? JSONDecoder().decode([PickupOrder].self, from: data) else { return }
         orders = decoded.sorted { $0.lastUpdated > $1.lastUpdated }
+        sanitizeStoredStoreNames()
+    }
+
+    /// Older builds saved Apple's pickup-instruction paragraph as the store name.
+    private func sanitizeStoredStoreNames() {
+        var changed = false
+        for index in orders.indices where AppleMailFields.isInstruction(orders[index].storeName) {
+            if orders[index].pickupNote == nil { orders[index].pickupNote = orders[index].storeName }
+            orders[index].storeName = ""
+            changed = true
+        }
+        if changed { save() }
+    }
+
+    private func shouldAdoptStore(current: String, new: String) -> Bool {
+        let incoming = new.trimmingCharacters(in: .whitespacesAndNewlines)
+        guard !incoming.isEmpty, incoming != "零售店", incoming != "Store Pickup", !AppleMailFields.isInstruction(incoming) else { return false }
+        let existing = current.trimmingCharacters(in: .whitespacesAndNewlines)
+        return existing.isEmpty || existing == "零售店" || existing == "Store Pickup" || AppleMailFields.isInstruction(existing) || existing != incoming
     }
 
     private func save() {

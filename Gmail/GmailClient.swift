@@ -53,9 +53,11 @@ final class GmailClient {
             guard let order = Self.firstMatch(#"(?i)(?:order\s*(?:number|#|no\.?)[\s:：#]*)\s*([A-Z0-9-]{8,})|\b(W\d{8,})\b"#, in: content) else { continue }
             let status = PickupStatus.detect(in: content)
             guard status != .unknown else { continue }
-            results.append(ParsedPickupMail(orderNumber: order, productName: Self.productName(from: content),
-                                            storeName: Self.storeName(from: content), status: status,
-                                            messageID: message.id, date: message.receivedAt))
+            let plain = AppleMailFields.plain(content)
+            results.append(ParsedPickupMail(orderNumber: order, productName: Self.productName(from: plain),
+                                            storeName: AppleMailFields.storeName(from: plain),
+                                            pickupNote: AppleMailFields.pickupNote(from: plain),
+                                            status: status, messageID: message.id, date: message.receivedAt))
         }
         return GmailFetchResult(messages: results.sorted { $0.date < $1.date },
                                 scannedCount: candidates.count, appleSenderCount: appleSenderCount)
@@ -93,12 +95,5 @@ final class GmailClient {
         return lines.first(where: { $0.localizedCaseInsensitiveContains("iPhone") || $0.localizedCaseInsensitiveContains("MacBook") || $0.localizedCaseInsensitiveContains("iPad") || $0.localizedCaseInsensitiveContains("Apple Watch") }) ?? "Apple Store Order"
     }
 
-    private static func storeName(from text: String) -> String {
-        let lines = text.components(separatedBy: .newlines)
-        if let index = lines.firstIndex(where: { $0.localizedCaseInsensitiveContains("Apple Store") }) {
-            return lines[index].trimmingCharacters(in: .whitespacesAndNewlines)
-        }
-        return "Store Pickup"
-    }
 }
 
