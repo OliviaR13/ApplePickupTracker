@@ -34,14 +34,6 @@ private struct GraphMessagePage: Decodable {
     }
 }
 
-private extension ISO8601DateFormatter {
-    static let withFractionalSeconds: ISO8601DateFormatter = {
-        let formatter = ISO8601DateFormatter()
-        formatter.formatOptions = [.withInternetDateTime, .withFractionalSeconds]
-        return formatter
-    }()
-}
-
 final class OutlookClient {
     private let oauth: OutlookOAuth
     init(oauth: OutlookOAuth) { self.oauth = oauth }
@@ -83,8 +75,10 @@ final class OutlookClient {
                 let status = PickupStatus.detect(in: content)
                 guard status != .unknown else { continue }
                 let date = message.receivedDateTime.flatMap { value -> Date? in
-                    ISO8601DateFormatter().date(from: value)
-                    ?? ISO8601DateFormatter.withFractionalSeconds.date(from: value)
+                    if let date = ISO8601DateFormatter().date(from: value) { return date }
+                    let formatter = ISO8601DateFormatter()
+                    formatter.formatOptions = [.withInternetDateTime, .withFractionalSeconds]
+                    return formatter.date(from: value)
                 } ?? Date()
                 parsed.append(ParsedPickupMail(orderNumber: order, productName: Self.productName(from: content),
                                                storeName: Self.storeName(from: content), status: status,
