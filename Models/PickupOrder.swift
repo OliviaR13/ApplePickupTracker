@@ -35,25 +35,25 @@ enum PickupStatus: String, Codable, CaseIterable, Comparable {
 
     var title: String {
         switch self {
-        case .ordered: "Order Placed"
-        case .processing: "Processing"
-        case .shippingToStore: "Shipping to Store"
-        case .readyForPickup: "Ready for Pickup"
-        case .pickedUp: "Picked Up"
-        case .cancelled: "Cancelled"
-        case .unknown: "Status unavailable"
+        case .ordered: "已下单"
+        case .processing: "正在处理"
+        case .shippingToStore: "运送至门店"
+        case .readyForPickup: "可以取货"
+        case .pickedUp: "已取货"
+        case .cancelled: "已取消"
+        case .unknown: "状态暂不可用"
         }
     }
 
     var detail: String {
         switch self {
-        case .ordered: "Apple received your order."
-        case .processing: "Your order is being prepared."
-        case .shippingToStore: "Your order is on its way to the store."
-        case .readyForPickup: "Your order is ready. Bring a valid ID when collecting it."
-        case .pickedUp: "This order has been collected."
-        case .cancelled: "This order was cancelled."
-        case .unknown: "Open the latest Apple email for details."
+        case .ordered: "Apple 已收到你的订单。"
+        case .processing: "订单正在准备中。"
+        case .shippingToStore: "订单正在运送至门店。"
+        case .readyForPickup: "订单已备妥，请携带有效身份证件前往门店取货。"
+        case .pickedUp: "此订单已取货。"
+        case .cancelled: "此订单已取消。"
+        case .unknown: "请查看最新的 Apple 邮件了解详情。"
         }
     }
 
