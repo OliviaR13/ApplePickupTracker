@@ -4,12 +4,17 @@
 <dict>
     <key>CFBundleDisplayName</key><string>Pickup Tracker</string>
     <key>CFBundleURLTypes</key>
-    <array><dict><key>CFBundleURLSchemes</key><array><string>com.googleusercontent.apps.963422500853-ngfp095nepkeklena1ul1vtpp2sddt44</string></array></dict></array>
+    <array>
+        <dict>
+            <key>CFBundleURLSchemes</key>
+            <array><string>msauth.com.example.ApplePickupTracker</string></array>
+        </dict>
+    </array>
     <key>UIBackgroundModes</key><array><string>fetch</string></array>
     <key>BGTaskSchedulerPermittedIdentifiers</key>
     <array><string>com.example.ApplePickupTracker.refresh</string></array>
     <key>NSSupportsLiveActivities</key><true/>
-    <key>NSUserNotificationUsageDescription</key><string>Notify you when an Apple Store order is ready for pickup.</string>
+    <key>NSUserNotificationUsageDescription</key><string>当 Apple Store 订单可以取货时通知你。</string>
     <key>UILaunchScreen</key><dict/>
 </dict>
 </plist>
