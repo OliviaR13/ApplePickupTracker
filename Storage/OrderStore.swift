@@ -17,7 +17,6 @@ final class OrderStore: ObservableObject {
         try? FileManager.default.createDirectory(at: directory, withIntermediateDirectories: true)
         fileURL = directory.appendingPathComponent("pickup-orders.json")
         load()
-        completeExpiredPickupOrders()
     }
 
     /// Inserts or updates one order. Pass `persist: false` when applying many messages in a row,
