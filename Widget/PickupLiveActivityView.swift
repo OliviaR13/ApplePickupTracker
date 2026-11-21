@@ -2,8 +2,7 @@ import ActivityKit
 import SwiftUI
 import WidgetKit
 
-/// iOS 17 and later draw an empty capsule when a Live Activity has no `containerBackground`.
-/// Dynamic system colors also come out black on that capsule, so every color here is explicit.
+/// Keep each presentation glanceable: the system may significantly reduce the available width.
 struct PickupLiveActivityView: Widget {
     var body: some WidgetConfiguration {
         ActivityConfiguration(for: PickupAttributes.self) { context in
@@ -22,13 +21,12 @@ struct PickupLiveActivityView: Widget {
             } compactLeading: {
                 IslandSymbol(status: context.state.status)
             } compactTrailing: {
-                Text(compactStatus(context.state.status))
-                    .font(.caption2.weight(.bold))
-                    .foregroundStyle(.white)
+                CompactIslandStatus(status: context.state.status)
             } minimal: {
                 IslandSymbol(status: context.state.status)
             }
-            .keylineTint(context.state.status == .readyForPickup ? Color(red: 0.18, green: 0.62, blue: 0.34) : Color.white)
+            .keylineTint(ActivityPalette(.dark).accent(for: context.state.status))
+            .contentMargins(.all, 14, for: .expanded)
         }
     }
 }
@@ -55,13 +53,17 @@ private struct LockScreenActivity: View {
                 .foregroundStyle(palette.primary)
                 .lineLimit(2)
                 .minimumScaleFactor(0.85)
-            ActivityProgress(value: context.state.status.progress, tint: palette.accent(for: context.state.status), track: palette.secondary.opacity(0.28))
+            ActivityProgress(
+                value: context.state.status.progress,
+                tint: palette.accent(for: context.state.status),
+                track: palette.secondary.opacity(0.28)
+            )
             Text(context.state.storeName)
                 .font(.caption)
                 .foregroundStyle(palette.secondary)
                 .lineLimit(1)
             if context.isStale {
-                Text("信息可能已过期，打开 App 即可刷新")
+                Label("信息可能已过期，打开 App 即可刷新", systemImage: "arrow.clockwise")
                     .font(.caption2)
                     .foregroundStyle(palette.secondary)
                     .lineLimit(1)
@@ -72,6 +74,10 @@ private struct LockScreenActivity: View {
         .activityBackgroundTint(palette.background)
         .activitySystemActionForegroundColor(palette.primary)
         .containerBackground(palette.background, for: .widget)
+        .accessibilityElement(children: .combine)
+        .accessibilityLabel(
+            "\(context.attributes.productName)，\(context.state.status.title)，\(context.state.storeName)"
+        )
     }
 }
 
@@ -80,8 +86,9 @@ private struct IslandSymbol: View {
     let status: PickupStatus
 
     var body: some View {
-        Image(systemName: status == .readyForPickup ? "checkmark.circle.fill" : "bag.fill")
+        Image(systemName: status == .readyForPickup ? "checkmark.circle.fill" : status.symbolName)
             .foregroundStyle(ActivityPalette(colorScheme).accent(for: status))
+            .accessibilityLabel(status.title)
     }
 }
 
@@ -93,6 +100,39 @@ private struct IslandStatus: View {
             .font(.caption.weight(.semibold))
             .foregroundStyle(.white)
             .lineLimit(1)
+            .minimumScaleFactor(0.75)
+            .accessibilityLabel(status.title)
+    }
+}
+
+private struct CompactIslandStatus: View {
+    let status: PickupStatus
+
+    var body: some View {
+        if #available(iOS 18.0, *) {
+            LimitedWidthIslandStatus(status: status)
+        } else {
+            Text(compactStatus(status, limited: false))
+                .font(.caption2.weight(.bold))
+                .foregroundStyle(.white)
+                .lineLimit(1)
+                .minimumScaleFactor(0.7)
+        }
+    }
+}
+
+@available(iOS 18.0, *)
+private struct LimitedWidthIslandStatus: View {
+    @Environment(\.isDynamicIslandLimitedInWidth) private var isLimited
+    let status: PickupStatus
+
+    var body: some View {
+        Text(compactStatus(status, limited: isLimited))
+            .font(.caption2.weight(.bold))
+            .foregroundStyle(.white)
+            .lineLimit(1)
+            .minimumScaleFactor(0.65)
+            .accessibilityLabel(status.title)
     }
 }
 
@@ -101,22 +141,40 @@ private struct IslandDetail: View {
     let context: ActivityViewContext<PickupAttributes>
 
     var body: some View {
-        let accent = ActivityPalette(colorScheme).accent(for: context.state.status)
-        VStack(alignment: .leading, spacing: 6) {
-            Text(context.attributes.productName)
-                .font(.headline)
-                .foregroundStyle(.white)
-                .lineLimit(2)
-            ActivityProgress(value: context.state.status.progress, tint: accent, track: Color.white.opacity(0.28))
-            HStack {
-                Text(context.state.storeName).lineLimit(1)
-                Spacer(minLength: 8)
+        let palette = ActivityPalette(colorScheme)
+        VStack(alignment: .leading, spacing: 7) {
+            HStack(alignment: .firstTextBaseline, spacing: 8) {
+                Text(context.attributes.productName)
+                    .font(.headline.weight(.semibold))
+                    .foregroundStyle(.white)
+                    .lineLimit(2)
+                    .minimumScaleFactor(0.8)
+                Spacer(minLength: 4)
+                if context.isStale {
+                    Image(systemName: "exclamationmark.circle.fill")
+                        .font(.caption)
+                        .foregroundStyle(.yellow)
+                        .accessibilityLabel("信息可能已过期")
+                }
+            }
+            ActivityProgress(
+                value: context.state.status.progress,
+                tint: palette.accent(for: context.state.status),
+                track: Color.white.opacity(0.25)
+            )
+            HStack(alignment: .center, spacing: 8) {
+                Label(context.state.storeName, systemImage: "mappin.and.ellipse")
+                    .lineLimit(1)
+                    .truncationMode(.tail)
+                Spacer(minLength: 4)
                 Text(context.state.lastUpdated.formatted(date: .omitted, time: .shortened))
+                    .fixedSize()
             }
             .font(.caption2)
-            .foregroundStyle(Color.white.opacity(0.75))
+            .foregroundStyle(Color.white.opacity(0.76))
         }
-        .padding(.top, 4)
+        .padding(.top, 2)
+        .accessibilityElement(children: .combine)
     }
 }
 
@@ -129,10 +187,13 @@ private struct ActivityProgress: View {
         GeometryReader { geo in
             ZStack(alignment: .leading) {
                 Capsule().fill(track)
-                Capsule().fill(tint).frame(width: max(6, geo.size.width * min(max(value, 0), 1)))
+                Capsule()
+                    .fill(tint)
+                    .frame(width: max(6, geo.size.width * min(max(value, 0), 1)))
             }
         }
-        .frame(height: 6)
+        .frame(height: 5)
+        .accessibilityHidden(true)
     }
 }
 
@@ -164,16 +225,29 @@ private struct ActivityPalette {
     }
 }
 
-private func compactStatus(_ status: PickupStatus) -> String {
-    switch status {
-    case .readyForPickup: "可取"
-    case .shippingToStore: "运送"
-    case .processing: "处理"
-    case .ordered: "下单"
-    case .pickedUp: "已取"
-    case .completed: "完结"
-    case .cancelled: "取消"
-    case .unknown: "订单"
+private func compactStatus(_ status: PickupStatus, limited: Bool) -> String {
+    if limited {
+        switch status {
+        case .readyForPickup: "取"
+        case .shippingToStore: "运"
+        case .processing: "备"
+        case .ordered: "下"
+        case .pickedUp: "取"
+        case .completed: "完"
+        case .cancelled: "停"
+        case .unknown: "?"
+        }
+    } else {
+        switch status {
+        case .readyForPickup: "可取"
+        case .shippingToStore: "运送"
+        case .processing: "处理"
+        case .ordered: "下单"
+        case .pickedUp: "已取"
+        case .completed: "完结"
+        case .cancelled: "取消"
+        case .unknown: "订单"
+        }
     }
 }
 
