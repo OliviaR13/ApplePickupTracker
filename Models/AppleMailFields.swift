@@ -4,7 +4,7 @@ extension PickupOrder {
     /// Store line safe to show and to match against Apple's retail list.
     /// Kept out of PickupOrder.swift because the widget target compiles that file alone.
     var recognizedStoreName: String? {
-        let name = storeName.trimmingCharacters(in: .whitespacesAndNewlines)
+        let name = AppleMailFields.cleanStoreName(storeName)
         guard !name.isEmpty, name != "零售店", name != "Store Pickup", !AppleMailFields.isInstruction(name) else { return nil }
         return name
     }
@@ -28,6 +28,19 @@ enum AppleMailFields {
         return text
     }
 
+    /// Removes product details accidentally concatenated to Apple's store label.
+    /// Applied at display time as well as parsing time so previously saved orders are repaired.
+    static func cleanStoreName(_ raw: String) -> String {
+        var value = raw.trimmingCharacters(in: .whitespacesAndNewlines)
+        let productBoundary = #"(?i)\\s+(?=(?:apple\\s+watch|iphone|ipad|macbook|airpods|apple\\s+pencil|homepod|apple\\s+tv|magic\\s+keyboard)\\b)"#
+        if let range = value.range(of: productBoundary, options: .regularExpression) {
+            value = String(value[..<range.lowerBound])
+        }
+        let suffixBoundary = #"(?i)\\s+(?:數量|数量|qty|quantity)\\s*[:：]?\\s*\\d+.*$"#
+        value = value.replacingOccurrences(of: suffixBoundary, with: "", options: .regularExpression)
+        return value.trimmingCharacters(in: .whitespacesAndNewlines.union(CharacterSet(charactersIn: "；;|›»·")))
+    }
+
     static func isInstruction(_ line: String) -> Bool {
         let trimmed = line.trimmingCharacters(in: .whitespacesAndNewlines)
         if trimmed.count > 48 { return true }
@@ -46,10 +59,10 @@ enum AppleMailFields {
         for (index, line) in rows.enumerated() {
             let lower = line.lowercased()
             guard labels.contains(where: { lower.contains($0) }) else { continue }
-            if let same = valueAfterLabel(line, labels: labels), isLocationValue(same) { return same }
-            if index + 1 < rows.count, isLocationValue(rows[index + 1]) { return rows[index + 1] }
+            if let same = valueAfterLabel(line, labels: labels), isLocationValue(cleanStoreName(same)) { return cleanStoreName(same) }
+            if index + 1 < rows.count, isLocationValue(cleanStoreName(rows[index + 1])) { return cleanStoreName(rows[index + 1]) }
         }
-        if let named = rows.first(where: looksLikeNamedStore) { return named }
+        if let named = rows.first(where: { looksLikeNamedStore(cleanStoreName($0)) }) { return cleanStoreName(named) }
         return "零售店"
     }
 
