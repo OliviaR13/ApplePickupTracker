@@ -4,6 +4,7 @@ import UIKit
 struct OrderDetailView: View {
     @EnvironmentObject private var store: OrderStore
     @Environment(\.dismiss) private var dismiss
+    @Environment(\.scenePhase) private var scenePhase
     /// Snapshot used to open the screen; the live copy is looked up in the store so it refreshes after a sync.
     let initial: PickupOrder
 
