@@ -237,13 +237,22 @@ final class OutlookClient {
     }
 
     private static func walletPassURL(in html: String) -> String? {
-        guard let regex = try? NSRegularExpression(pattern: #"(?is)<a[^>]+href=["'](https://[^"']+)["'][^>]*>.*?(?:add to apple wallet|apple wallet|加入 apple 钱包|加入 apple 錢包).*?</a>"#) else { return nil }
+        // Parse each anchor independently. A broad dot-matching regex can cross </a>
+        // and accidentally pair a nearby Maps URL with the later Wallet button.
+        let anchorPattern = #"(?is)<a\\b[^>]*\\bhref\\s*=\\s*["']([^"']+)["'][^>]*>(.*?)</a>"#
+        guard let regex = try? NSRegularExpression(pattern: anchorPattern) else { return nil }
         let range = NSRange(html.startIndex..., in: html)
         for match in regex.matches(in: html, range: range) {
-            guard let valueRange = Range(match.range(at: 1), in: html),
-                  let url = URL(string: String(html[valueRange])),
-                  let host = url.host?.lowercased(),
-                  host == "apple.com" || host.hasSuffix(".apple.com") else { continue }
+            guard let hrefRange = Range(match.range(at: 1), in: html),
+                  let bodyRange = Range(match.range(at: 2), in: html) else { continue }
+            let rawURL = String(html[hrefRange]).replacingOccurrences(of: "&amp;", with: "&")
+            let anchorBody = String(html[bodyRange]).lowercased()
+            guard let url = URL(string: rawURL),
+                  url.scheme?.lowercased() == "https",
+                  url.host?.lowercased() == "storepass.apple.com",
+                  url.path.lowercased().contains("/mpo/v2/apu/passcreator/"),
+                  anchorBody.contains("apple wallet") || anchorBody.contains("add-to-wallet")
+                    || anchorBody.contains("加入 apple 錢包") || anchorBody.contains("加入 apple 钱包") else { continue }
             return url.absoluteString
         }
         return nil
