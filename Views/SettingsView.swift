@@ -32,21 +32,21 @@ struct SettingsView: View {
     var body: some View {
         NavigationStack {
             Form {
-                outlookSection
+                outlookSection.listRowBackground(TrackerTheme.card)
                 Section("隐私与权限") {
                     Label("邮件内容仅在此设备上处理", systemImage: "iphone")
                     Label("订单数据保存在本机", systemImage: "lock.fill")
                     Label("Microsoft Graph：Mail.Read 只读权限", systemImage: "envelope.badge")
-                }
-                appearanceSection
-                automationSection
-                notificationSection
-                securitySection
-                if extensionInstalled { liveActivitySection }
+                }.listRowBackground(TrackerTheme.card)
+                appearanceSection.listRowBackground(TrackerTheme.card)
+                automationSection.listRowBackground(TrackerTheme.card)
+                notificationSection.listRowBackground(TrackerTheme.card)
+                securitySection.listRowBackground(TrackerTheme.card)
+                if extensionInstalled { liveActivitySection.listRowBackground(TrackerTheme.card) }
                 Section("同步") {
                     LabeledContent("上次同步", value: store.lastSync?.formatted(date: .abbreviated, time: .shortened) ?? "从未同步")
                     Text("iOS 会在系统资源允许时安排后台刷新，实际刷新时间由系统决定。").font(.footnote).foregroundStyle(.secondary)
-                }
+                }.listRowBackground(TrackerTheme.card)
                 Section {
                     Button("清除订单数据", role: .destructive) { confirmingClear = true }
                         .disabled(store.orders.isEmpty)
@@ -54,12 +54,16 @@ struct SettingsView: View {
                     Text("数据")
                 } footer: {
                     Text("只会删除本机保存的订单记录，不会影响 Outlook 邮箱里的邮件。")
-                }
+                }.listRowBackground(TrackerTheme.card)
                 Section("关于") {
                     LabeledContent("版本", value: versionText)
-                }
+                }.listRowBackground(TrackerTheme.card)
             }
+            .scrollContentBackground(.hidden)
+            .background(TrackerTheme.background)
+            .tint(TrackerTheme.accent)
             .navigationTitle("设置").navigationBarTitleDisplayMode(.inline)
+            .preferredColorScheme(appearanceMode == "dark" ? .dark : appearanceMode == "light" ? .light : nil)
             .task {
                 activitiesEnabled = ActivityAuthorizationInfo().areActivitiesEnabled
                 runningCount = LiveActivityManager().runningCount
