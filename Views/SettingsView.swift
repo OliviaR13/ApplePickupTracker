@@ -59,7 +59,7 @@ struct SettingsView: View {
             }
         }
         .scrollContentBackground(.hidden)
-        .background(TrackerTheme.background)
+        .background(TrackerTheme.background.ignoresSafeArea())
         .tint(TrackerTheme.accent)
         .navigationTitle("设置")
         .navigationBarTitleDisplayMode(.large)
@@ -114,63 +114,18 @@ struct SettingsView: View {
 
     private var appearanceSection: some View {
         Section {
-            HStack(spacing: 10) {
-                appearanceOption("system", title: "跟随系统", subtitle: "自动适配", symbol: "circle.lefthalf.filled")
-                appearanceOption("light", title: "浅色", subtitle: "明亮外观", symbol: "sun.max.fill")
-                appearanceOption("dark", title: "深色", subtitle: "暗色外观", symbol: "moon.stars.fill")
+            Picker("外观", selection: $appearanceMode) {
+                Label("自动", systemImage: "circle.lefthalf.filled").tag("system")
+                Label("浅色", systemImage: "sun.max.fill").tag("light")
+                Label("深色", systemImage: "moon.stars.fill").tag("dark")
             }
-            .padding(.vertical, 6)
-        } header: { Text("外观") }
-        footer: { Text("选择跟随系统后，App 会随 iPhone 的浅色或深色外观自动切换。") }
-    }
-
-    private func appearanceOption(_ mode: String, title: String, subtitle: String, symbol: String) -> some View {
-        let isSelected = appearanceMode == mode
-        return Button {
-            withAnimation(.snappy(duration: 0.2)) {
-                appearanceMode = mode
-            }
-        } label: {
-            VStack(alignment: .leading, spacing: 9) {
-                HStack {
-                    Image(systemName: symbol)
-                        .font(.system(size: 19, weight: .medium))
-                    Spacer(minLength: 2)
-                    if isSelected {
-                        Image(systemName: "checkmark.circle.fill")
-                            .font(.system(size: 15, weight: .semibold))
-                    }
-                }
-                .foregroundStyle(isSelected ? TrackerTheme.accent : Color.secondary)
-                VStack(alignment: .leading, spacing: 3) {
-                    Text(title)
-                        .font(.subheadline.weight(.semibold))
-                        .foregroundStyle(.primary)
-                        .lineLimit(1)
-                        .minimumScaleFactor(0.8)
-                    Text(subtitle)
-                        .font(.caption2)
-                        .foregroundStyle(.secondary)
-                        .lineLimit(1)
-                }
-            }
-            .frame(maxWidth: .infinity, minHeight: 82, alignment: .leading)
-            .padding(TrackerTheme.Spacing.regular)
-            .background(
-                RoundedRectangle(cornerRadius: TrackerTheme.Radius.control, style: .continuous)
-                    .fill(isSelected ? TrackerTheme.accent.opacity(0.10) : Color.clear)
-            )
-            .liquidGlass(in: RoundedRectangle(cornerRadius: TrackerTheme.Radius.control, style: .continuous))
-            .overlay {
-                RoundedRectangle(cornerRadius: 15, style: .continuous)
-                    .strokeBorder(isSelected ? TrackerTheme.accent : Color.primary.opacity(0.08),
-                                  lineWidth: isSelected ? 1.5 : 1)
-            }
-            .contentShape(RoundedRectangle(cornerRadius: 15, style: .continuous))
+            .pickerStyle(.segmented)
+            .accessibilityLabel("外观模式")
+        } header: {
+            Text("外观")
+        } footer: {
+            Text("自动模式跟随 iPhone 系统外观；也可以固定使用浅色或深色。")
         }
-        .buttonStyle(.plain)
-        .accessibilityLabel(title)
-        .accessibilityAddTraits(isSelected ? .isSelected : [])
     }
 
     private var automationSection: some View {
