@@ -21,7 +21,10 @@ struct OrderDetailView: View {
                 LiquidGlassGroup(spacing: 12) {
                     VStack(alignment: .leading, spacing: 18) {
                         statusHero
+                        itemCard
                         detailsCard
+                        if hasFinancialDetails { financialCard }
+                        if hasStoreDetails { storeCard }
                         timelineCard
                         if let storeName = order.recognizedStoreName {
                             Button {
@@ -96,13 +99,80 @@ struct OrderDetailView: View {
 
     // MARK: - Details
 
+    private var itemCard: some View {
+        GlassCard {
+            VStack(alignment: .leading, spacing: 12) {
+                Label("商品清单", systemImage: "shippingbox")
+                    .font(.headline)
+                Text(order.productName)
+                    .font(.body.weight(.semibold))
+                    .fixedSize(horizontal: false, vertical: true)
+                HStack {
+                    Text("数量")
+                        .foregroundStyle(.secondary)
+                    Spacer()
+                    Text(order.quantity.map(String.init) ?? "—")
+                        .monospacedDigit()
+                }
+                if let amount = order.productAmount {
+                    moneyRow("商品金额", amount, emphasized: true)
+                }
+            }
+        }
+    }
+
+    private var hasFinancialDetails: Bool {
+        order.subtotal != nil || order.shippingFee != nil || order.totalAmount != nil
+    }
+
+    private var financialCard: some View {
+        GlassCard {
+            VStack(alignment: .leading, spacing: 12) {
+                Label("金额明细", systemImage: "yensign.circle")
+                    .font(.headline)
+                if let subtotal = order.subtotal { moneyRow("商品小计", subtotal) }
+                if let shipping = order.shippingFee { moneyRow("配送费", shipping) }
+                if let total = order.totalAmount {
+                    Divider()
+                    moneyRow("订单总计", total, emphasized: true)
+                }
+            }
+        }
+    }
+
+    private var hasStoreDetails: Bool {
+        order.storeAddress != nil || order.storePostalCode != nil || order.storePhone != nil
+    }
+
+    private var storeCard: some View {
+        GlassCard {
+            VStack(alignment: .leading, spacing: 12) {
+                Label("取货门店", systemImage: "mappin.and.ellipse")
+                    .font(.headline)
+                Text(order.displayStoreName)
+                    .font(.body.weight(.semibold))
+                if let address = order.storeAddress, !address.isEmpty {
+                    Text(address)
+                        .font(.subheadline)
+                        .foregroundStyle(.secondary)
+                        .fixedSize(horizontal: false, vertical: true)
+                        .textSelection(.enabled)
+                }
+                if let postal = order.storePostalCode {
+                    detailRow("邮政编码", postal)
+                }
+                if let phone = order.storePhone {
+                    detailRow("联系电话", phone)
+                }
+            }
+        }
+    }
+
     private var detailsCard: some View {
         GlassCard {
             VStack(alignment: .leading, spacing: 12) {
-                Label("订单详情", systemImage: "shippingbox")
+                Label("订单信息", systemImage: "doc.text")
                     .font(.headline)
-                detailRow("商品", order.productName)
-                detailRow("取货门店", order.displayStoreName)
                 detailRow("订单编号", order.orderNumber)
                 detailRow("最后更新", order.lastUpdated.formatted(date: .abbreviated, time: .shortened))
                 if let note = order.pickupNote, !note.isEmpty {
@@ -117,6 +187,26 @@ struct OrderDetailView: View {
                 }
             }
         }
+    }
+
+    private func moneyRow(_ title: String, _ amount: Decimal, emphasized: Bool = false) -> some View {
+        HStack {
+            Text(title)
+                .foregroundStyle(emphasized ? .primary : .secondary)
+            Spacer()
+            Text(formattedMoney(amount))
+                .fontWeight(emphasized ? .semibold : .regular)
+                .monospacedDigit()
+        }
+        .font(.subheadline)
+    }
+
+    private func formattedMoney(_ amount: Decimal) -> String {
+        let formatter = NumberFormatter()
+        formatter.numberStyle = .currency
+        formatter.currencyCode = order.currencyCode ?? "CNY"
+        formatter.locale = Locale(identifier: "zh_CN")
+        return formatter.string(from: amount as NSDecimalNumber) ?? amount.description
     }
 
     private func detailRow(_ title: String, _ value: String) -> some View {
