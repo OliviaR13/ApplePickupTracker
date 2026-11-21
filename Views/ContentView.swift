@@ -87,6 +87,7 @@ struct ContentView: View {
         }
         .task { BackgroundSync.shared.schedule() }
         .preferredColorScheme(appearanceMode == "dark" ? .dark : appearanceMode == "light" ? .light : nil)
+        .animation(.easeInOut(duration: 0.2), value: appearanceMode)
     }
 
     // MARK: - List
