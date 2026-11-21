@@ -27,11 +27,18 @@ struct ContentCard<Content: View>: View {
     var cornerRadius: CGFloat = TrackerTheme.Radius.card
     @ViewBuilder var content: () -> Content
 
+    private var shape: RoundedRectangle {
+        RoundedRectangle(cornerRadius: cornerRadius, style: .continuous)
+    }
+
     var body: some View {
         content()
             .padding(TrackerTheme.Spacing.cardInset)
             .frame(maxWidth: .infinity, alignment: .leading)
-            .liquidGlass(in: RoundedRectangle(cornerRadius: cornerRadius, style: .continuous))
+            .background(TrackerTheme.card, in: shape)
+            .overlay {
+                shape.strokeBorder(TrackerTheme.separator.opacity(0.24), lineWidth: 0.5)
+            }
     }
 }
 
