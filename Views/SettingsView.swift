@@ -20,6 +20,7 @@ struct SettingsView: View {
     @AppStorage("notifications.delayed") private var notifyDelayed = true
     @AppStorage("notifications.exceptions") private var notifyExceptions = true
     @AppStorage("security.protectQRCodeWithBiometrics") private var protectQRCodeWithBiometrics = true
+    @AppStorage("appearance.mode") private var appearanceMode = "system"
 
     private var versionText: String {
         let info = Bundle.main.infoDictionary
@@ -37,6 +38,7 @@ struct SettingsView: View {
                     Label("订单数据保存在本机", systemImage: "lock.fill")
                     Label("Microsoft Graph：Mail.Read 只读权限", systemImage: "envelope.badge")
                 }
+                appearanceSection
                 automationSection
                 notificationSection
                 securitySection
@@ -98,6 +100,18 @@ struct SettingsView: View {
                 .disabled(isWorking)
             }
         }
+    }
+
+    private var appearanceSection: some View {
+        Section {
+            Picker("外观模式", selection: $appearanceMode) {
+                Text("跟随系统").tag("system")
+                Text("浅色").tag("light")
+                Text("深色").tag("dark")
+            }
+            .pickerStyle(.segmented)
+        } header: { Text("外观") }
+        footer: { Text("选择跟随系统后，App 会随 iPhone 的浅色或深色外观自动切换。") }
     }
 
     private var automationSection: some View {
