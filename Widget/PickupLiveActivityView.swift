@@ -109,30 +109,15 @@ private struct CompactIslandStatus: View {
     let status: PickupStatus
 
     var body: some View {
-        if #available(iOS 18.0, *) {
-            LimitedWidthIslandStatus(status: status)
-        } else {
+        ViewThatFits(in: .horizontal) {
             Text(compactStatus(status, limited: false))
-                .font(.caption2.weight(.bold))
-                .foregroundStyle(.white)
-                .lineLimit(1)
-                .minimumScaleFactor(0.7)
+            Text(compactStatus(status, limited: true))
         }
-    }
-}
-
-@available(iOS 18.0, *)
-private struct LimitedWidthIslandStatus: View {
-    @Environment(\.isDynamicIslandLimitedInWidth) private var isLimited
-    let status: PickupStatus
-
-    var body: some View {
-        Text(compactStatus(status, limited: isLimited))
-            .font(.caption2.weight(.bold))
-            .foregroundStyle(.white)
-            .lineLimit(1)
-            .minimumScaleFactor(0.65)
-            .accessibilityLabel(status.title)
+        .font(.caption2.weight(.bold))
+        .foregroundStyle(.white)
+        .lineLimit(1)
+        .minimumScaleFactor(0.65)
+        .accessibilityLabel(status.title)
     }
 }
 
