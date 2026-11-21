@@ -79,6 +79,11 @@ final class OutlookClient {
                 guard Self.isAppleSender(sender) else { continue }
                 appleCount += 1
                 let content = AppleMailFields.plain((message.subject ?? "") + "\n" + (message.body?.content ?? ""))
+
+                // Apple Gift Cards delivered by email are not physical store-pickup orders.
+                // Require both the digital-delivery marker and a gift-card product marker.
+                if Self.isEmailGiftCard(content) { continue }
+
                 guard let order = Self.firstMatch(Self.orderRegex, in: content) else { continue }
                 let status = PickupStatus.detect(in: content)
                 guard status != .unknown else { continue }
@@ -119,12 +124,24 @@ final class OutlookClient {
         return Range(match.range, in: text).map { String(text[$0]) }
     }
 
+    private static func isEmailGiftCard(_ text: String) -> Bool {
+        let value = text.lowercased()
+        let hasGiftCard = value.contains("apple gift card") || value.contains("apple礼品卡")
+            || value.contains("apple 禮品卡") || value.contains("apple giftcard")
+        let isEmailDelivery = value.contains("items to be emailed")
+            || value.contains("send to:") || value.contains("gift card details")
+            || value.contains("电子邮件发送") || value.contains("以电子邮件发送")
+        return hasGiftCard && isEmailDelivery
+    }
+
     private static func productName(from text: String) -> String {
-        let lines = text.components(separatedBy: .newlines).map { $0.trimmingCharacters(in: .whitespacesAndNewlines) }.filter { !$0.isEmpty }
+        let lines = text.components(separatedBy: .newlines)
+            .map { $0.trimmingCharacters(in: .whitespacesAndNewlines) }
+            .filter { !$0.isEmpty }
+        let productKeywords = ["iPhone", "MacBook", "iPad", "Apple Watch", "AirPods",
+                               "Apple Pencil", "HomePod", "Apple TV", "Magic Keyboard"]
         return lines.first(where: { line in
-            ["iPhone", "MacBook", "iPad", "Apple Watch"].contains(where: { keyword in
-                line.localizedCaseInsensitiveContains(keyword)
-            })
+            productKeywords.contains(where: { line.localizedCaseInsensitiveContains($0) })
         }) ?? "Apple Store Order"
     }
 
