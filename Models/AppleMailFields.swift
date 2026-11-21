@@ -85,15 +85,23 @@ enum AppleMailFields {
         let trimmed = line.trimmingCharacters(in: .whitespacesAndNewlines)
         guard (2...40).contains(trimmed.count), !isInstruction(trimmed) else { return false }
         if trimmed.range(of: #"^W\d{6,}$"#, options: .regularExpression) != nil { return false }
-        let products = ["iPhone", "iPad", "MacBook", "Apple Watch", "AirPods"]
-        if products.contains(where: { trimmed.contains($0) }) { return false }
+        let products = ["iPhone", "iPad", "MacBook", "Apple Watch", "AirPods", "Apple Pencil", "HomePod", "Apple TV", "Magic Keyboard"]
+        if products.contains(where: { trimmed.localizedCaseInsensitiveContains($0) }) { return false }
         return true
+    }
+
+    private static func isProductLine(_ line: String) -> Bool {
+        let lower = line.lowercased()
+        let markers = ["apple watch", "iphone", "ipad", "macbook", "airpods", "apple pencil", "homepod", "apple tv", "magic keyboard"]
+        return markers.contains(where: { lower.contains($0) })
     }
 
     private static func looksLikeNamedStore(_ line: String) -> Bool {
         let trimmed = line.trimmingCharacters(in: .whitespacesAndNewlines)
         guard isLocationValue(trimmed) else { return false }
         let lower = trimmed.lowercased()
+        let productMarkers = ["apple watch", "iphone", "ipad", "macbook", "airpods", "apple pencil", "homepod", "apple tv", "magic keyboard"]
+        if productMarkers.contains(where: { lower.contains($0) }) { return false }
         if lower == "apple" || lower == "apple store" { return false }
         if lower.hasPrefix("apple ") { return true }
         let hints = ["店", "廣場", "广场", "中心", "mall", "plaza", "centre", "center", "ifc"]
@@ -160,7 +168,8 @@ extension AppleMailFields {
                         || lower.contains("路线") || lower.contains("路線")
                         || lower.contains("directions") || lower.contains("取货政策")
                         || lower.contains("取貨政策") || lower.contains("pickup policy")
-                        || lower.contains("问题") || lower.contains("questions") { break }
+                        || lower.contains("问题") || lower.contains("問題") || lower.contains("questions")
+                        || isProductLine(row) { break }
                     // Apple HK may concatenate the address, phone number and
                     // navigation links into one HTML text node. Split these fields.
                     let phonePattern = #"((?<!\d)(?:\+?852[\s-]?)?\d{4}[\s-]?\d{4}(?!\d))"#
@@ -186,11 +195,17 @@ extension AppleMailFields {
 
     private static func cleanStoreAddress(_ row: String, phonePattern: String) -> String {
         var value = row.replacingOccurrences(of: phonePattern, with: " ", options: .regularExpression)
+        // Apple may concatenate the address and product title in a single text node.
+        let productBoundary = #"(?i)\s+(?=(?:apple\s+watch|iphone|ipad|macbook|airpods|apple\s+pencil|homepod|apple\s+tv|magic\s+keyboard)\b)"#
+        value = value.replacingOccurrences(of: productBoundary, with: "\n", options: .regularExpression)
+        if let boundary = value.range(of: #"(?i)\s+(?:數量|数量|qty|quantity)\b"#, options: .regularExpression) {
+            value = String(value[..<boundary.lowerBound])
+        }
         let trailingLabels = [
             "服務時間和交通指引", "服务时间和交通指引", "營業時間和交通指引", "营业时间和交通指引",
             "服務時間", "服务时间", "交通指引", "取貨項目", "取货项目",
             "店舖詳情", "店铺详情", "查看地圖", "查看地图", "directions", "store hours",
-            "opening hours", "pickup items"
+            "opening hours", "pickup items", "問題", "问题", "questions"
         ]
         for label in trailingLabels {
             if let range = value.range(of: label, options: [.caseInsensitive]) {
