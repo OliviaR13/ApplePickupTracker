@@ -25,8 +25,9 @@ struct PickupLiveActivityView: Widget {
             } minimal: {
                 IslandSymbol(status: context.state.status)
             }
-            .keylineTint(ActivityPalette(.dark).accent(for: context.state.status))
-            .contentMargins(.all, 14, for: .expanded)
+            // Let iOS draw the island silhouette without an extra colored keyline.
+            .keylineTint(.clear)
+            .contentMargins(.all, 8, for: .expanded)
         }
     }
 }
