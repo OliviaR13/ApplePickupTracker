@@ -10,6 +10,8 @@ final class NotificationManager {
     }
 
     func notifyReady(order: PickupOrder) async {
+        let enabled = UserDefaults.standard.object(forKey: "notifications.ready") as? Bool ?? true
+        guard enabled else { return }
         let content = UNMutableNotificationContent()
         content.title = "可以取货了"
         content.body = "\(order.productName) 已在 \(order.displayStoreName) 备妥，请携带有效身份证件前往。"
