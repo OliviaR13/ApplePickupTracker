@@ -71,7 +71,7 @@ final class OrderStore: ObservableObject {
                                       storePhone: metadata?.storePhone,
                                       pickupQRCode: pickupQRCode, walletPassURL: walletPassURL,
                                       status: status, lastUpdated: date, sourceMessageID: messageID,
-                                      history: [OrderEvent(status: status, date: date)], alerts: alerts.isEmpty ? nil : alerts))
+                                      history: [OrderEvent(status: status, date: date, messageID: messageID)], alerts: alerts.isEmpty ? nil : alerts))
             target = orders.count - 1
         }
         let becameReady = orders[target].status == .readyForPickup && previousStatus != .readyForPickup
