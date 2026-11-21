@@ -21,6 +21,8 @@ struct PickupOrder: Codable, Identifiable, Hashable {
     var pickupQRCode: String?
     /// Validated HTTPS Apple Wallet pass URL from the same message.
     var walletPassURL: String?
+    /// Original Apple Store Maps/retail-map URL extracted from the pickup email.
+    var storeNavigationURL: String? = nil
     /// Receipt time of Apple's ready-for-pickup email; used for automatic completion.
     var readyForPickupAt: Date? = nil
     var status: PickupStatus
