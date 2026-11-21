@@ -15,6 +15,7 @@ struct OrderDetailView: View {
     @State private var activitiesDisabled = false
     @State private var confirmingRemove = false
     @State private var showingQRCode = false
+    @State private var isQRCodeUnlocked = false
     @State private var previousBrightness: CGFloat?
     @State private var originalMail: OriginalMailMessage?
     @State private var showingOriginalMail = false
@@ -55,7 +56,27 @@ struct OrderDetailView: View {
         .background(Color(uiColor: .systemGroupedBackground))
         .navigationTitle("订单详情")
         .navigationBarTitleDisplayMode(.inline)
-.sensoryFeedback(.success, trigger: activityNote)
+        .sensoryFeedback(.success, trigger: activityNote)
+        .onChange(of: protectQRCodeWithBiometrics) { _, enabled in
+            isQRCodeUnlocked = !enabled
+        }
+        .onChange(of: scenePhase) { _, phase in
+            if phase != .active && protectQRCodeWithBiometrics {
+                isQRCodeUnlocked = false
+            }
+        }
+        .onDisappear {
+            isQRCodeUnlocked = false
+            restoreBrightness()
+        }
+        .alert("无法解锁二维码", isPresented: Binding(
+            get: { originalMailError != nil },
+            set: { if !$0 { originalMailError = nil } }
+        )) {
+            Button("好", role: .cancel) { originalMailError = nil }
+        } message: {
+            Text(originalMailError ?? "")
+        }
         .sheet(isPresented: $showingOriginalMail) {
             NavigationStack {
                 VStack(alignment: .leading, spacing: 10) {
@@ -194,18 +215,38 @@ struct OrderDetailView: View {
                     .font(.headline)
                 if let image = pickupQRCodeImage {
                     Button { Task { await presentQRCode() } } label: {
-                        Image(uiImage: image)
-                            .resizable()
-                            .interpolation(.none)
-                            .scaledToFit()
-                            .frame(maxWidth: 240, maxHeight: 240)
-                            .padding(14)
-                            .background(Color.white, in: RoundedRectangle(cornerRadius: 16))
-                            .frame(maxWidth: .infinity)
-                            .accessibilityLabel("放大查看 Apple Store 取货二维码")
+                        ZStack {
+                            Image(uiImage: image)
+                                .resizable()
+                                .interpolation(.none)
+                                .scaledToFit()
+                                .frame(maxWidth: 240, maxHeight: 240)
+                                .padding(14)
+                                .background(Color.white, in: RoundedRectangle(cornerRadius: 16))
+                                .blur(radius: protectQRCodeWithBiometrics && !isQRCodeUnlocked ? 13 : 0)
+
+                            if protectQRCodeWithBiometrics && !isQRCodeUnlocked {
+                                VStack(spacing: 8) {
+                                    Image(systemName: "faceid")
+                                        .font(.system(size: 30, weight: .medium))
+                                    Text("点击验证以显示二维码")
+                                        .font(.caption.weight(.semibold))
+                                }
+                                .foregroundStyle(.primary)
+                                .padding(14)
+                                .background(.regularMaterial, in: RoundedRectangle(cornerRadius: 14))
+                            }
+                        }
+                        .frame(maxWidth: .infinity)
+                        .contentShape(Rectangle())
+                        .accessibilityLabel(protectQRCodeWithBiometrics && !isQRCodeUnlocked
+                                            ? "二维码已隐藏，点击使用 Face ID 解锁"
+                                            : "查看 Apple Store 取货二维码")
                     }
                     .buttonStyle(.plain)
-                    Text("点击二维码放大并临时调高屏幕亮度。")
+                    Text(protectQRCodeWithBiometrics
+                         ? (isQRCodeUnlocked ? "二维码已解锁，再次点击可全屏展示。" : "二维码已模糊隐藏，验证身份后将在此处显示。")
+                         : "点击二维码放大并临时调高屏幕亮度。")
                         .font(.footnote)
                         .foregroundStyle(.secondary)
                         .frame(maxWidth: .infinity, alignment: .center)
@@ -359,7 +400,7 @@ struct OrderDetailView: View {
     }
 
     private func presentQRCode() async {
-        if protectQRCodeWithBiometrics {
+        if protectQRCodeWithBiometrics && !isQRCodeUnlocked {
             let context = LAContext()
             context.localizedCancelTitle = "取消"
             do {
@@ -368,9 +409,14 @@ struct OrderDetailView: View {
                     originalMailError = error?.localizedDescription ?? "此设备尚未设置 Face ID 或设备密码。"
                     return
                 }
-                _ = try await context.evaluatePolicy(.deviceOwnerAuthentication, localizedReason: "验证身份后查看 Apple Store 取货二维码")
-            } catch { originalMailError = error.localizedDescription; return }
+                _ = try await context.evaluatePolicy(.deviceOwnerAuthentication, localizedReason: "验证身份后显示 Apple Store 取货二维码")
+                isQRCodeUnlocked = true
+            } catch {
+                originalMailError = error.localizedDescription
+            }
+            return
         }
+
         previousBrightness = UIScreen.main.brightness
         UIScreen.main.brightness = 1.0
         showingQRCode = true
