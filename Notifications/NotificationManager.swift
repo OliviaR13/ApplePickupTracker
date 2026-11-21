@@ -19,8 +19,12 @@ final class NotificationManager {
         content.body = "\(order.productName)：\(alert.detail)"
         content.sound = .default
         let request = UNNotificationRequest(identifier: "order-alert-\(alert.id)", content: content, trigger: nil)
-        try? await UNUserNotificationCenter.current().add(request)
-        UserDefaults.standard.set(true, forKey: sentKey)
+        do {
+            try await UNUserNotificationCenter.current().add(request)
+            UserDefaults.standard.set(true, forKey: sentKey)
+        } catch {
+            // Leave the alert unsent so the next successful sync can retry it.
+        }
     }
 
     func notifyCompleted(order: PickupOrder) async {
