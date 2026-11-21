@@ -9,6 +9,7 @@ struct ContentView: View {
     @State private var showingAddOrder = false
     @State private var searchText = ""
     @State private var filter: OrderFilter = .all
+    @AppStorage("appearance.mode") private var appearanceMode = "system"
 
     private let syncService: SyncService
     init(syncService: SyncService) { self.syncService = syncService }
@@ -85,6 +86,7 @@ struct ContentView: View {
             } message: { Text(errorMessage ?? "") }
         }
         .task { BackgroundSync.shared.schedule() }
+        .preferredColorScheme(appearanceMode == "dark" ? .dark : appearanceMode == "light" ? .light : nil)
     }
 
     // MARK: - List
@@ -249,7 +251,7 @@ private struct OrderRow: View {
 
     var body: some View {
         HStack(spacing: 14) {
-            StorePhotoView(storeName: order.recognizedStoreName, height: 58, cornerRadius: 16)
+            ProductThumbnailView(imageURL: order.productImageURL, size: 58, cornerRadius: 16)
             VStack(alignment: .leading, spacing: 5) {
                 Text(order.productName)
                     .font(.headline)
