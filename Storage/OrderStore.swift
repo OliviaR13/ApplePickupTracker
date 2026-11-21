@@ -22,7 +22,9 @@ final class OrderStore: ObservableObject {
     /// Inserts or updates one order. Pass `persist: false` when applying many messages in a row,
     /// then call `commit()` once so the list is sorted and written to disk a single time.
     @discardableResult
-    func upsert(orderNumber: String, product: String, store: String, pickupNote: String? = nil, status: PickupStatus, messageID: String, date: Date, persist: Bool = true) -> Bool {
+    func upsert(orderNumber: String, product: String, store: String, pickupNote: String? = nil,
+                metadata: AppleOrderMetadata? = nil, status: PickupStatus, messageID: String, date: Date,
+                persist: Bool = true) -> Bool {
         guard !ignoredNumbers.contains(orderNumber) else { return false }
         let existing = orders.firstIndex(where: { $0.orderNumber == orderNumber })
         let previousStatus = existing.map { orders[$0].status }
@@ -36,9 +38,25 @@ final class OrderStore: ObservableObject {
                 orders[index].storeName = store
             }
             if let pickupNote, !pickupNote.isEmpty { orders[index].pickupNote = pickupNote }
+            if let metadata {
+                if let value = metadata.quantity { orders[index].quantity = value }
+                if let value = metadata.productAmount { orders[index].productAmount = value }
+                if let value = metadata.subtotal { orders[index].subtotal = value }
+                if let value = metadata.shippingFee { orders[index].shippingFee = value }
+                if let value = metadata.totalAmount { orders[index].totalAmount = value }
+                if let value = metadata.currencyCode { orders[index].currencyCode = value }
+                if let value = metadata.storeAddress, !value.isEmpty { orders[index].storeAddress = value }
+                if let value = metadata.storePostalCode { orders[index].storePostalCode = value }
+                if let value = metadata.storePhone { orders[index].storePhone = value }
+            }
             target = index
         } else {
             orders.append(PickupOrder(orderNumber: orderNumber, productName: product, storeName: store, pickupNote: pickupNote,
+                                      quantity: metadata?.quantity, productAmount: metadata?.productAmount,
+                                      subtotal: metadata?.subtotal, shippingFee: metadata?.shippingFee,
+                                      totalAmount: metadata?.totalAmount, currencyCode: metadata?.currencyCode,
+                                      storeAddress: metadata?.storeAddress, storePostalCode: metadata?.storePostalCode,
+                                      storePhone: metadata?.storePhone,
                                       status: status, lastUpdated: date, sourceMessageID: messageID,
                                       history: [OrderEvent(status: status, date: date)]))
             target = orders.count - 1
