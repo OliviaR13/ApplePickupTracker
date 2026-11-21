@@ -104,6 +104,10 @@ final class LiveActivityManager {
         }
     }
 
+    func isRunning(orderNumber: String) -> Bool {
+        running.contains { $0.attributes.orderNumber == orderNumber }
+    }
+
     func end(orderNumber: String) async {
         for activity in running where activity.attributes.orderNumber == orderNumber {
             await activity.end(nil, dismissalPolicy: .immediate)
