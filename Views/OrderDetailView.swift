@@ -381,22 +381,25 @@ struct OrderDetailView: View {
                     }
                     VStack(alignment: .leading, spacing: 3) {
                         if let messageID = event.messageID {
-                            Button(event.status.title) {
+                            Button {
                                 originalMail = nil
                                 showingOriginalMail = true
                                 Task { originalMail = try? await loadOriginalMail(messageID) }
-                            }.font(.subheadline.weight(index == 0 ? .semibold : .regular))
+                            } label: {
+                                VStack(alignment: .leading, spacing: 3) {
+                                    Text(event.status.title)
+                                        .font(.subheadline.weight(index == 0 ? .semibold : .regular))
+                                        .foregroundStyle(index == 0 ? Color.primary : Color.secondary)
+                                    Text("查看邮件原文").font(.caption2).foregroundStyle(.tint)
+                                }
+                            }.buttonStyle(.plain)
                         } else {
                             Text(event.status.title)
                                 .font(.subheadline.weight(index == 0 ? .semibold : .regular))
+                                .foregroundStyle(index == 0 ? Color.primary : Color.secondary)
                         }
-                        /* event status title */
-                        Text(event.status.title)
-                            .font(.subheadline.weight(index == 0 ? .semibold : .regular))
-                            .foregroundStyle(index == 0 ? Color.primary : Color.secondary)
                         Text(event.date.formatted(date: .abbreviated, time: .shortened))
-                            .font(.caption)
-                            .foregroundStyle(.secondary)
+                            .font(.caption).foregroundStyle(.secondary)
                     }
                     .padding(.bottom, isLast ? 0 : 18)
                     Spacer(minLength: 0)
