@@ -7,13 +7,24 @@ final class BackgroundSync {
     static let shared = BackgroundSync()
     private init() {}
 
-    func register(handler: @escaping () async -> Void) {
+    func register(handler: @escaping () async throws -> Void) {
         BGTaskScheduler.shared.register(forTaskWithIdentifier: Self.identifier, using: nil) { task in
-            guard let refresh = task as? BGAppRefreshTask else { task.setTaskCompleted(success: false); return }
+            guard let refresh = task as? BGAppRefreshTask else {
+                task.setTaskCompleted(success: false)
+                return
+            }
             self.schedule()
-            Task {
-                await handler()
-                refresh.setTaskCompleted(success: true)
+
+            let work = Task {
+                do {
+                    try await handler()
+                    refresh.setTaskCompleted(success: true)
+                } catch {
+                    refresh.setTaskCompleted(success: false)
+                }
+            }
+            refresh.expirationHandler = {
+                work.cancel()
             }
         }
     }
