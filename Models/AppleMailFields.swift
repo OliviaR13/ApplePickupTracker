@@ -161,22 +161,45 @@ extension AppleMailFields {
                         || lower.contains("directions") || lower.contains("取货政策")
                         || lower.contains("取貨政策") || lower.contains("pickup policy")
                         || lower.contains("问题") || lower.contains("questions") { break }
-                    if isPhoneLine(row) {
+                    // Apple HK may concatenate the address, phone number and
+                    // navigation links into one HTML text node. Split these fields.
+                    let phonePattern = #"(?<!\d)(?:\+?852[\s-]?)?\d{4}[\s-]?\d{4}(?!\d)"#
+                    if let phone = firstCapture(phonePattern, in: row) {
+                        result.storePhone = normalizedPhone(phone)
+                    } else if isPhoneLine(row) {
                         result.storePhone = normalizedPhone(row)
-                        break
+                        continue
                     }
                     if row == AppleMailFields.storeName(from: text) { continue }
                     if row.range(of: #"\b\d{5,6}\b"#, options: .regularExpression) != nil {
                         result.storePostalCode = firstCapture(#"\b(\d{5,6})\b"#, in: row)
-                        continue
                     }
-                    if addressRows.count < 5 { addressRows.append(row) }
+                    let cleaned = cleanStoreAddress(row, phonePattern: phonePattern)
+                    if !cleaned.isEmpty, addressRows.count < 5 { addressRows.append(cleaned) }
                 }
             }
             let address = addressRows.joined(separator: " ").trimmingCharacters(in: .whitespacesAndNewlines)
             if !address.isEmpty { result.storeAddress = address }
         }
         return result
+    }
+
+    private static func cleanStoreAddress(_ row: String, phonePattern: String) -> String {
+        var value = row.replacingOccurrences(of: phonePattern, with: " ", options: .regularExpression)
+        let trailingLabels = [
+            "服務時間和交通指引", "服务时间和交通指引", "營業時間和交通指引", "营业时间和交通指引",
+            "服務時間", "服务时间", "交通指引", "取貨項目", "取货项目",
+            "店舖詳情", "店铺详情", "查看地圖", "查看地图", "directions", "store hours",
+            "opening hours", "pickup items"
+        ]
+        for label in trailingLabels {
+            if let range = value.range(of: label, options: [.caseInsensitive]) {
+                value = String(value[..<range.lowerBound])
+            }
+        }
+        return value.replacingOccurrences(of: #"[|›»·]+$"#, with: "", options: .regularExpression)
+            .replacingOccurrences(of: #"[ \t,，]+$"#, with: "", options: .regularExpression)
+            .trimmingCharacters(in: .whitespacesAndNewlines)
     }
 
     private static func amount(afterAny labels: [String], rows: [String], pattern: String) -> Decimal? {
