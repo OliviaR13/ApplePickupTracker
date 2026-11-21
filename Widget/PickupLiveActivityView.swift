@@ -159,7 +159,7 @@ private struct ActivityPalette {
         case .shippingToStore: Color(red: 0.20, green: 0.46, blue: 0.86)
         case .processing: Color(red: 0.86, green: 0.48, blue: 0.12)
         case .cancelled: Color(red: 0.82, green: 0.22, blue: 0.22)
-        case .ordered, .pickedUp, .unknown: secondary
+        case .ordered, .pickedUp, .completed, .unknown: secondary
         }
     }
 }
@@ -171,6 +171,7 @@ private func compactStatus(_ status: PickupStatus) -> String {
     case .processing: "处理"
     case .ordered: "下单"
     case .pickedUp: "已取"
+    case .completed: "完结"
     case .cancelled: "取消"
     case .unknown: "订单"
     }
