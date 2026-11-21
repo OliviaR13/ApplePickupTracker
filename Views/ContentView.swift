@@ -73,7 +73,7 @@ struct ContentView: View {
                     .padding(.horizontal, 18)
                     .padding(.vertical, 10)
                     .frame(maxWidth: 560)
-                    .background(.regularMaterial, in: RoundedRectangle(cornerRadius: 22, style: .continuous))
+                    .background(.regularMaterial, in: RoundedRectangle(cornerRadius: TrackerTheme.Radius.prominent, style: .continuous))
                     .frame(maxWidth: .infinity)
                     .padding(.horizontal, 16)
                     .padding(.bottom, 8)
@@ -154,7 +154,7 @@ struct ContentView: View {
     private var readyBanner: some View {
         Label("\(readyCount) 个订单可以取货", systemImage: "checkmark.seal.fill")
             .font(.subheadline.weight(.semibold))
-            .foregroundStyle(.green)
+            .foregroundStyle(Color(uiColor: .systemGreen))
             .padding(.vertical, 4)
     }
 
