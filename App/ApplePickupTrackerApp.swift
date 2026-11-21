@@ -15,8 +15,12 @@ struct ApplePickupTrackerApp: App {
                     await NotificationManager.shared.requestPermission()
                     let container = container
                     BackgroundSync.shared.register {
-                        do { try await container.syncService.sync() }
-                        catch { container.store.setSyncResult("同步失败：\(SyncErrorText.describe(error))") }
+                        do {
+                            try await container.syncService.sync()
+                        } catch {
+                            container.store.setSyncResult("同步失败：\(SyncErrorText.describe(error))")
+                            throw error
+                        }
                     }
                 }
                 .onChange(of: scenePhase) { _, phase in
