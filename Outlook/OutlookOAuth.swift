@@ -30,8 +30,8 @@ final class OutlookOAuth: NSObject, ObservableObject, ASWebAuthenticationPresent
     }
 
     func connect() async throws {
-        verifier = Self.randomString(count: 64)
-        state = Self.randomString(count: 32)
+        verifier = try Self.randomString(count: 64)
+        state = try Self.randomString(count: 32)
         let challenge = Data(SHA256.hash(data: Data(verifier.utf8))).base64URLEncodedString()
         var components = URLComponents(string: "\(authority)/oauth2/v2.0/authorize")!
         components.queryItems = [
@@ -114,9 +114,7 @@ final class OutlookOAuth: NSObject, ObservableObject, ASWebAuthenticationPresent
         request.httpMethod = "POST"
         request.setValue("application/x-www-form-urlencoded", forHTTPHeaderField: "Content-Type")
         request.httpBody = values.map {
-            let key = $0.key.addingPercentEncoding(withAllowedCharacters: .urlQueryAllowed) ?? $0.key
-            let value = $0.value.addingPercentEncoding(withAllowedCharacters: .urlQueryAllowed) ?? $0.value
-            return "\(key)=\(value)"
+            "\(Self.formEncode($0.key))=\(Self.formEncode($0.value))"
         }.joined(separator: "&").data(using: .utf8)
         let (data, response) = try await URLSession.shared.data(for: request)
         let json = (try? JSONSerialization.jsonObject(with: data)) as? [String: Any] ?? [:]
@@ -149,14 +147,27 @@ final class OutlookOAuth: NSObject, ObservableObject, ASWebAuthenticationPresent
         UIApplication.shared.connectedScenes.compactMap { ($0 as? UIWindowScene)?.keyWindow }.first ?? ASPresentationAnchor()
     }
 
-    private static func randomString(count: Int) -> String {
-        let alphabet = Array("abcdefghijklmnopqrstuvwxyzABCDEFGHIJKLMNOPQRSTUVWXYZ0123456789-._~")
-        return String((0..<count).compactMap { _ in alphabet.randomElement() })
+    /// Uses the system CSPRNG for both the PKCE verifier and OAuth state.
+    private static func randomString(count: Int) throws -> String {
+        let alphabet = Array("abcdefghijklmnopqrstuvwxyzABCDEFGHIJKLMNOPQRSTUVWXYZ0123456789-._~".utf8)
+        var bytes = [UInt8](repeating: 0, count: count)
+        let status = bytes.withUnsafeMutableBytes { buffer in
+            SecRandomCopyBytes(kSecRandomDefault, buffer.count, buffer.baseAddress!)
+        }
+        guard status == errSecSuccess else { throw OutlookError.secureRandomUnavailable }
+        return String(decoding: bytes.map { alphabet[Int($0) % alphabet.count] }, as: UTF8.self)
+    }
+
+    /// application/x-www-form-urlencoded encoding: only unreserved bytes remain literal.
+    private static func formEncode(_ value: String) -> String {
+        let allowed = CharacterSet(charactersIn: "abcdefghijklmnopqrstuvwxyzABCDEFGHIJKLMNOPQRSTUVWXYZ0123456789-._~")
+        return (value.addingPercentEncoding(withAllowedCharacters: allowed) ?? "")
+            .replacingOccurrences(of: "%20", with: "+")
     }
 }
 
 enum OutlookError: LocalizedError {
-    case invalidURL, invalidCallback, authorizationUnavailable, tokenExchangeFailed, notConnected
+    case invalidURL, invalidCallback, authorizationUnavailable, tokenExchangeFailed, notConnected, secureRandomUnavailable
     case authorizationFailed(String), tokenRequestFailed(String), apiFailure(status: Int, message: String)
     var errorDescription: String? {
         switch self {
@@ -165,6 +176,7 @@ enum OutlookError: LocalizedError {
         case .authorizationUnavailable: "无法启动 Microsoft 登录页面。"
         case .tokenExchangeFailed: "Microsoft 登录令牌交换失败。"
         case .notConnected: "尚未连接 Outlook。"
+        case .secureRandomUnavailable: "无法生成安全的登录随机数，请重试。"
         case let .authorizationFailed(message): "Microsoft 授权失败：\(message)"
         case let .tokenRequestFailed(message): "Microsoft Token 请求失败：\(message)"
         case let .apiFailure(status, message): "Outlook API 错误（HTTP \(status)）：\(message)"
