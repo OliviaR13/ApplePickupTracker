@@ -32,7 +32,12 @@ final class SyncService {
         guard defaults.integer(forKey: Self.parserVersionKey) == Self.parserVersion,
               !store.orders.isEmpty,
               let last = defaults.object(forKey: Self.lastScanKey) as? Date else { return nil }
-        return Calendar.current.date(byAdding: .day, value: -3, to: last)
+        let overlap = Calendar.current.date(byAdding: .day, value: -3, to: last)
+        let pendingReadyDates = store.orders
+            .filter { $0.status == .readyForPickup }
+            .compactMap(\.readyForPickupAt)
+        guard let earliestPending = pendingReadyDates.min() else { return overlap }
+        return min(overlap ?? earliestPending, earliestPending)
     }
 
     func sync() async throws {
