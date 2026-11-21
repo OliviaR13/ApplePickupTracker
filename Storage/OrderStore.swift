@@ -23,7 +23,7 @@ final class OrderStore: ObservableObject {
     /// then call `commit()` once so the list is sorted and written to disk a single time.
     @discardableResult
     func upsert(orderNumber: String, product: String, store: String, pickupNote: String? = nil,
-                metadata: AppleOrderMetadata? = nil, pickupQRCode: String? = nil, walletPassURL: String? = nil, alerts: [OrderAlert] = [], status: PickupStatus, messageID: String, date: Date,
+                metadata: AppleOrderMetadata? = nil, productImageURL: String? = nil, pickupQRCode: String? = nil, walletPassURL: String? = nil, alerts: [OrderAlert] = [], status: PickupStatus, messageID: String, date: Date,
                 persist: Bool = true) -> Bool {
         guard !ignoredNumbers.contains(orderNumber) else { return false }
         let existing = orders.firstIndex(where: { $0.orderNumber == orderNumber })
@@ -52,6 +52,7 @@ final class OrderStore: ObservableObject {
             if status == .readyForPickup, orders[index].readyForPickupAt == nil {
                 orders[index].readyForPickupAt = date
             }
+            if let productImageURL, !productImageURL.isEmpty { orders[index].productImageURL = productImageURL }
             if let pickupQRCode, !pickupQRCode.isEmpty { orders[index].pickupQRCode = pickupQRCode }
             if let walletPassURL, !walletPassURL.isEmpty { orders[index].walletPassURL = walletPassURL }
             if !alerts.isEmpty {
@@ -69,6 +70,7 @@ final class OrderStore: ObservableObject {
                                       totalAmount: metadata?.totalAmount, currencyCode: metadata?.currencyCode,
                                       storeAddress: metadata?.storeAddress, storePostalCode: metadata?.storePostalCode,
                                       storePhone: metadata?.storePhone,
+                                      productImageURL: productImageURL,
                                       pickupQRCode: pickupQRCode, walletPassURL: walletPassURL,
                                       status: status, lastUpdated: date, sourceMessageID: messageID,
                                       history: [OrderEvent(status: status, date: date, messageID: messageID)], alerts: alerts.isEmpty ? nil : alerts))
