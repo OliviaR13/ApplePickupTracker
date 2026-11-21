@@ -42,7 +42,7 @@ enum AppleMailFields {
 
     static func storeName(from text: String) -> String {
         let rows = lines(from: text)
-        let labels = ["取貨地點", "取货地点", "取貨零售店", "取货零售店", "取貨門店", "取货门店", "零售店位置", "pickup location", "store location"]
+        let labels = ["取貨地點", "取货地点", "取貨零售店", "取货零售店", "取貨門店", "取货门店", "零售店位置", "pickup location", "store location", "pickup store"]
         for (index, line) in rows.enumerated() {
             let lower = line.lowercased()
             guard labels.contains(where: { lower.contains($0) }) else { continue }
@@ -146,7 +146,7 @@ extension AppleMailFields {
             ?? allMoney.last?.2
 
         let storeLabels = ["取货零售店", "取貨零售店", "取货门店", "取貨門店", "取货地点", "取貨地點",
-                           "pickup location", "store pickup location"]
+                           "pickup location", "store pickup location", "pickup store"]
         if let labelIndex = rows.firstIndex(where: { row in
             storeLabels.contains(where: { row.localizedCaseInsensitiveContains($0) })
         }) {
