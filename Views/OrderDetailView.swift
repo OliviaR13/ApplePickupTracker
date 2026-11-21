@@ -166,7 +166,7 @@ struct OrderDetailView: View {
     // MARK: - Details
 
     private var itemCard: some View {
-        GlassCard {
+        ContentCard {
             VStack(alignment: .leading, spacing: 12) {
                 Label("商品清单", systemImage: "shippingbox")
                     .font(.headline)
