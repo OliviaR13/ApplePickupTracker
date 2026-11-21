@@ -409,7 +409,7 @@ struct OrderDetailView: View {
                                 showingOriginalMail = true
                                 Task {
                                     do { originalMail = try await loadOriginalMail(messageID) }
-                                    catch { originalMail = OriginalMailMessage(subject: "无法加载邮件", sender: "", receivedAt: nil, body: error.localizedDescription) }
+                                    catch { originalMail = OriginalMailMessage(subject: "无法加载邮件", sender: "", receivedAt: nil, body: error.localizedDescription, contentType: "text") }
                                 }
                             } label: {
                                 VStack(alignment: .leading, spacing: 3) {
