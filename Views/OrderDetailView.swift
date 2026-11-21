@@ -14,6 +14,8 @@ struct OrderDetailView: View {
     @State private var activityNote: String?
     @State private var activitiesDisabled = false
     @State private var confirmingRemove = false
+    @State private var confirmingPickedUp = false
+    @State private var isLiveActivityVisible = false
     @State private var showingQRCode = false
     @State private var isQRCodeUnlocked = false
     @State private var previousBrightness: CGFloat?
@@ -31,6 +33,7 @@ struct OrderDetailView: View {
                 LiquidGlassGroup(spacing: TrackerTheme.Spacing.section) {
                     VStack(alignment: .leading, spacing: TrackerTheme.Spacing.section) {
                         statusHero
+                        quickActionsCard
                         itemCard
                         detailsCard
                         if hasPickupAssets { pickupPassCard }
@@ -57,6 +60,7 @@ struct OrderDetailView: View {
         .navigationTitle("订单详情")
         .navigationBarTitleDisplayMode(.inline)
         .sensoryFeedback(.success, trigger: activityNote)
+        .task { isLiveActivityVisible = liveActivity.isRunning(orderNumber: order.orderNumber) }
         .onChange(of: protectQRCodeWithBiometrics) { _, enabled in
             isQRCodeUnlocked = !enabled
         }
@@ -122,6 +126,12 @@ struct OrderDetailView: View {
                     .accessibilityLabel("更多")
             }
         }
+        .confirmationDialog("确认已取货？", isPresented: $confirmingPickedUp, titleVisibility: .visible) {
+            Button("标记为已取货") { markPickedUp() }
+            Button("取消", role: .cancel) {}
+        } message: {
+            Text("这会将订单状态更新为「已取货」，并立即结束此订单的灵动岛活动。")
+        }
         .confirmationDialog("移除这个订单？", isPresented: $confirmingRemove, titleVisibility: .visible) {
             Button("移除", role: .destructive) { removeOrder() }
             Button("取消", role: .cancel) {}
@@ -161,6 +171,62 @@ struct OrderDetailView: View {
         .background(order.status.gradient, in: RoundedRectangle(cornerRadius: TrackerTheme.Radius.prominent, style: .continuous))
         .shadow(color: order.status.tint.opacity(0.28), radius: 14, y: 6)
         .animation(.easeInOut, value: order.status)
+    }
+
+    // MARK: - Quick actions
+
+    private var orderShareText: String {
+        [
+            "Apple Store 订单",
+            "商品：\(order.productName)",
+            "订单编号：\(order.orderNumber)",
+            "状态：\(order.status.title)",
+            "门店：\(order.displayStoreName)",
+            order.displayStoreAddress.map { "地址：\($0)" },
+            "最后更新：\(order.lastUpdated.formatted(date: .long, time: .shortened))"
+        ].compactMap { $0 }.joined(separator: "\n")
+    }
+
+    private var quickActionsCard: some View {
+        ContentCard {
+            VStack(alignment: .leading, spacing: 12) {
+                Label("快捷操作", systemImage: "bolt")
+                    .font(.headline)
+                HStack(spacing: 10) {
+                    Button {
+                        UIPasteboard.general.string = order.orderNumber
+                        activityNote = "订单编号已复制"
+                    } label: {
+                        Label("复制订单号", systemImage: "doc.on.doc")
+                            .frame(maxWidth: .infinity)
+                    }
+                    .liquidGlassButton()
+
+                    ShareLink(item: orderShareText) {
+                        Label("分享订单", systemImage: "square.and.arrow.up")
+                            .frame(maxWidth: .infinity)
+                    }
+                    .liquidGlassButton()
+                }
+                if order.status == .readyForPickup {
+                    Button {
+                        confirmingPickedUp = true
+                    } label: {
+                        Label("我已完成取货", systemImage: "checkmark.seal")
+                            .frame(maxWidth: .infinity)
+                    }
+                    .controlSize(.large)
+                    .liquidGlassProminentButton()
+                }
+            }
+        }
+    }
+
+    private func markPickedUp() {
+        store.markPickedUp(orderNumber: order.orderNumber)
+        Task { await liveActivity.end(orderNumber: order.orderNumber) }
+        isLiveActivityVisible = false
+        activityNote = "已标记为取货完成，灵动岛活动已结束。"
     }
 
     // MARK: - Details
@@ -485,14 +551,29 @@ struct OrderDetailView: View {
 
     private var liveActivityControls: some View {
         VStack(alignment: .leading, spacing: 12) {
-            Button {
-                Task { await showOnLockScreen() }
-            } label: {
-                Label("在锁定屏幕和灵动岛显示", systemImage: "rectangle.inset.filled.bottom")
-                    .frame(maxWidth: .infinity)
+            if isLiveActivityVisible {
+                Button(role: .destructive) {
+                    Task {
+                        await liveActivity.end(orderNumber: order.orderNumber)
+                        isLiveActivityVisible = false
+                        activityNote = "此订单的灵动岛活动已立即结束。"
+                    }
+                } label: {
+                    Label("结束此订单的灵动岛任务", systemImage: "xmark.circle")
+                        .frame(maxWidth: .infinity)
+                }
+                .controlSize(.large)
+                .liquidGlassButton()
+            } else if !order.status.isFinished {
+                Button {
+                    Task { await showOnLockScreen() }
+                } label: {
+                    Label("在锁定屏幕和灵动岛显示", systemImage: "rectangle.inset.filled.bottom")
+                        .frame(maxWidth: .infinity)
+                }
+                .controlSize(.large)
+                .liquidGlassProminentButton()
             }
-            .controlSize(.large)
-            .liquidGlassProminentButton()
             if activitiesDisabled {
                 Text("实时活动已关闭。打开「设置 › Apple Pickup Tracker › 实时活动」后即可在锁定屏幕和灵动岛查看取货状态。远程推送更新需要签名和 APNs，当前版本只在本机同步时更新。")
                     .font(.footnote)
@@ -516,10 +597,12 @@ struct OrderDetailView: View {
             activityNote = nil
         case .started, .updated:
             activitiesDisabled = false
+            isLiveActivityVisible = true
             activityNote = "已显示在锁定屏幕和灵动岛。状态会在这台设备同步邮件时更新。"
         case .ended:
             activitiesDisabled = false
-            activityNote = "订单已结束，实时活动会在一小时后从锁定屏幕消失。"
+            isLiveActivityVisible = false
+            activityNote = "订单已结束，灵动岛活动已结束。"
         case .failed(let message):
             activitiesDisabled = false
             activityNote = message
