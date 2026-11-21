@@ -124,7 +124,7 @@ extension AppleMailFields {
         result.quantity = firstCapture(#"(?i)(?:数量|qty|quantity)\s*[:：]?\s*(\d{1,3})"#, in: text)
             .flatMap(Int.init)
 
-        let moneyPattern = #"(?i)(HK\\$|RMB|CNY|HKD|USD|AUD|CAD|SGD|EUR|GBP|JPY|[$€£¥])\s*([0-9][0-9,]*(?:\.\d{1,2})?)"#
+        let moneyPattern = #"(?i)(HK\$|RMB|CNY|HKD|USD|AUD|CAD|SGD|EUR|GBP|JPY|[$€£¥])\s*([0-9][0-9,]*(?:\.\d{1,2})?)"#
         let allMoney = rows.enumerated().compactMap { index, line -> (Int, String, Decimal, String)? in
             guard let match = firstMoney(in: line, pattern: moneyPattern) else { return nil }
             return (index, match.currency, match.amount, line)
