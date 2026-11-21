@@ -25,9 +25,8 @@ struct PickupLiveActivityView: Widget {
             } minimal: {
                 IslandSymbol(status: context.state.status)
             }
-            // Let iOS draw the island silhouette without an extra colored keyline.
-            .keylineTint(.clear)
-            .contentMargins(.all, 8, for: .expanded)
+            // Keep the system keyline adaptive and increase the content footprint.
+            .contentMargins(.all, 6, for: .expanded)
         }
     }
 }
@@ -88,6 +87,7 @@ private struct IslandSymbol: View {
 
     var body: some View {
         Image(systemName: status == .readyForPickup ? "checkmark.circle.fill" : status.symbolName)
+            .font(.system(size: 21, weight: .semibold))
             .foregroundStyle(ActivityPalette(colorScheme).accent(for: status))
             .accessibilityLabel(status.title)
     }
@@ -98,7 +98,7 @@ private struct IslandStatus: View {
 
     var body: some View {
         Text(status.title)
-            .font(.caption.weight(.semibold))
+            .font(.subheadline.weight(.semibold))
             .foregroundStyle(.white)
             .lineLimit(1)
             .minimumScaleFactor(0.75)
@@ -128,10 +128,10 @@ private struct IslandDetail: View {
 
     var body: some View {
         let palette = ActivityPalette(colorScheme)
-        VStack(alignment: .leading, spacing: 7) {
-            HStack(alignment: .firstTextBaseline, spacing: 8) {
+        VStack(alignment: .leading, spacing: 12) {
+            HStack(alignment: .firstTextBaseline, spacing: 10) {
                 Text(context.attributes.productName)
-                    .font(.headline.weight(.semibold))
+                    .font(.title3.weight(.semibold))
                     .foregroundStyle(.white)
                     .lineLimit(2)
                     .minimumScaleFactor(0.8)
@@ -159,7 +159,7 @@ private struct IslandDetail: View {
             .font(.caption2)
             .foregroundStyle(Color.white.opacity(0.76))
         }
-        .padding(.top, 2)
+        .padding(.vertical, 12)
         .accessibilityElement(children: .combine)
     }
 }
@@ -178,7 +178,7 @@ private struct ActivityProgress: View {
                     .frame(width: max(6, geo.size.width * min(max(value, 0), 1)))
             }
         }
-        .frame(height: 5)
+        .frame(height: 6)
         .accessibilityHidden(true)
     }
 }
