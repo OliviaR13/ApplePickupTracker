@@ -12,7 +12,7 @@ final class SyncService {
     }
 
     /// Bump when the mail parser changes so the next sync re-scans the full window.
-    private static let parserVersion = 9
+    private static let parserVersion = 10
     private static let lastScanKey = "outlook.lastScanDate"
     private static let parserVersionKey = "outlook.parserVersion"
 
