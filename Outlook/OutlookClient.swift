@@ -5,6 +5,7 @@ struct ParsedPickupMail {
     let productName: String
     let storeName: String
     let pickupNote: String?
+    let metadata: AppleOrderMetadata
     let status: PickupStatus
     let messageID: String
     let date: Date
@@ -93,6 +94,7 @@ final class OutlookClient {
                 parsed.append(ParsedPickupMail(orderNumber: order, productName: Self.productName(from: content),
                                                storeName: AppleMailFields.storeName(from: content),
                                                pickupNote: AppleMailFields.pickupNote(from: content),
+                                               metadata: AppleMailFields.orderMetadata(from: content),
                                                status: status, messageID: message.id, date: date))
             }
             nextURL = page.nextLink.flatMap(URL.init(string:))
