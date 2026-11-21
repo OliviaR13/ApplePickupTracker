@@ -8,6 +8,7 @@ struct ParsedPickupMail {
     let metadata: AppleOrderMetadata
     let pickupQRCode: String?
     let walletPassURL: String?
+    let alerts: [OrderAlert]
     let status: PickupStatus
     let messageID: String
     let date: Date
@@ -117,7 +118,7 @@ final class OutlookClient {
                                                pickupNote: AppleMailFields.pickupNote(from: content),
                                                metadata: AppleMailFields.orderMetadata(from: content),
                                                pickupQRCode: assets.qr, walletPassURL: assets.wallet,
-                                               status: status, messageID: message.id, date: date))
+                                               alerts: OrderAlert.detect(in: content, date: date), status: status, messageID: message.id, date: date))
             }
             nextURL = page.nextLink.flatMap(URL.init(string:))
         }
