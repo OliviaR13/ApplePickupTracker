@@ -5,12 +5,14 @@ import BackgroundTasks
 struct ApplePickupTrackerApp: App {
     @StateObject private var container = AppContainer()
     @Environment(\.scenePhase) private var scenePhase
+    @AppStorage("appearance.mode") private var appearanceMode = "system"
 
     var body: some Scene {
         WindowGroup {
             ContentView(syncService: container.syncService)
                 .environmentObject(container.store)
                 .environmentObject(container.oauth)
+                .preferredColorScheme(appearanceMode == "dark" ? .dark : appearanceMode == "light" ? .light : nil)
                 .task {
                     await NotificationManager.shared.requestPermission()
                     let container = container
