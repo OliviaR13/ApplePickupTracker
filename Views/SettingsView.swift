@@ -148,8 +148,9 @@ struct SettingsView: View {
             .padding(TrackerTheme.Spacing.regular)
             .background(
                 RoundedRectangle(cornerRadius: TrackerTheme.Radius.control, style: .continuous)
-                    .fill(isSelected ? TrackerTheme.accent.opacity(0.10) : TrackerTheme.card)
+                    .fill(isSelected ? TrackerTheme.accent.opacity(0.10) : Color.clear)
             )
+            .liquidGlass(in: RoundedRectangle(cornerRadius: TrackerTheme.Radius.control, style: .continuous))
             .overlay {
                 RoundedRectangle(cornerRadius: 15, style: .continuous)
                     .strokeBorder(isSelected ? TrackerTheme.accent : Color.primary.opacity(0.08),
