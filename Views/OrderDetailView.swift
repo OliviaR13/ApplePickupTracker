@@ -146,13 +146,13 @@ struct OrderDetailView: View {
                     .accessibilityLabel("更多操作")
             }
         }
-        .confirmationDialog("确认已取货？", isPresented: $confirmingPickedUp, titleVisibility: .visible) {
+        .alert("确认已取货？", isPresented: $confirmingPickedUp) {
             Button("标记为已取货") { markPickedUp() }
             Button("取消", role: .cancel) {}
         } message: {
             Text("这会将订单状态更新为「已取货」，并立即结束此订单的灵动岛活动。")
         }
-        .confirmationDialog("移除这个订单？", isPresented: $confirmingRemove, titleVisibility: .visible) {
+        .alert("移除这个订单？", isPresented: $confirmingRemove) {
             Button("移除", role: .destructive) { removeOrder() }
             Button("取消", role: .cancel) {}
         } message: {
