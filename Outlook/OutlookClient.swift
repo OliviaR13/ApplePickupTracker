@@ -9,6 +9,7 @@ struct ParsedPickupMail {
     let metadata: AppleOrderMetadata
     let pickupQRCode: String?
     let walletPassURL: String?
+    let storeNavigationURL: String?
     let alerts: [OrderAlert]
     let status: PickupStatus
     let messageID: String
@@ -141,6 +142,7 @@ final class OutlookClient {
                                                pickupNote: AppleMailFields.pickupNote(from: content),
                                                metadata: AppleMailFields.orderMetadata(from: content),
                                                pickupQRCode: assets.qr, walletPassURL: assets.wallet,
+                                               storeNavigationURL: Self.storeNavigationURL(in: rawBody),
                                                alerts: alerts, status: status, messageID: message.id, date: date))
             }
             nextURL = page.nextLink.flatMap(URL.init(string:))
@@ -241,6 +243,40 @@ final class OutlookClient {
         }
     }
 
+    /// Extracts the actual pickup-map link from Apple's HTML email, rather than geocoding a store name.
+    /// The ready-for-pickup email's maps.apple.com destination takes precedence over the generic retail page.
+    private static func storeNavigationURL(in html: String) -> String? {
+        let anchorPattern = #"(?is)<a\\b[^>]*\\bhref\\s*=\\s*["']([^"']+)["'][^>]*>(.*?)</a>"#
+        guard let regex = try? NSRegularExpression(pattern: anchorPattern) else { return nil }
+        let range = NSRange(html.startIndex..., in: html)
+        var retailURL: String?
+        for match in regex.matches(in: html, range: range) {
+            guard let hrefRange = Range(match.range(at: 1), in: html),
+                  let bodyRange = Range(match.range(at: 2), in: html) else { continue }
+            let rawURL = String(html[hrefRange])
+                .replacingOccurrences(of: "&amp;", with: "&")
+                .replacingOccurrences(of: "&#38;", with: "&")
+            let label = AppleMailFields.plain(String(html[bodyRange]))
+                .lowercased()
+                .replacingOccurrences(of: #"\\s+"#, with: " ", options: .regularExpression)
+            guard let url = URL(string: rawURL),
+                  let host = url.host?.lowercased(),
+                  url.scheme?.lowercased() == "https" || url.scheme?.lowercased() == "http" else { continue }
+            if host == "maps.apple.com",
+               url.queryItemsContainDestination {
+                return url.absoluteString
+            }
+            let isRetailMap = (host == "www.apple.com" || host == "apple.com")
+                && url.path.lowercased().contains("/retail/")
+                && (url.path.lowercased().contains("/map") || label.contains("交通指引")
+                    || label.contains("營業時間") || label.contains("directions") || label.contains("store hours"))
+            if isRetailMap, retailURL == nil {
+                retailURL = url.absoluteString
+            }
+        }
+        return retailURL
+    }
+
     private static func walletPassURL(in html: String) -> String? {
         // Parse each anchor independently. A broad dot-matching regex can cross </a>
         // and accidentally pair a nearby Maps URL with the later Wallet button.
@@ -331,4 +367,12 @@ final class OutlookClient {
         }) ?? "Apple Store Order"
     }
 
+}
+
+private extension URL {
+    var queryItemsContainDestination: Bool {
+        URLComponents(url: self, resolvingAgainstBaseURL: false)?.queryItems?.contains {
+            $0.name.lowercased() == "daddr" && !($0.value ?? "").isEmpty
+        } ?? false
+    }
 }
