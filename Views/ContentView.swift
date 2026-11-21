@@ -85,7 +85,8 @@ struct ContentView: View {
             .alert("操作失败", isPresented: Binding(get: { errorMessage != nil }, set: { if !$0 { errorMessage = nil } })) {
                 Button("好", role: .cancel) { errorMessage = nil }
             } message: { Text(errorMessage ?? "") }
-            if showingSettings {
+        }
+        if showingSettings {
                 NavigationStack {
                     SettingsView(onSync: { await sync() }, onClose: { showingSettings = false })
                 }
