@@ -41,7 +41,7 @@ struct OrderDetailView: View {
                         timelineCard
                         if let storeName = order.recognizedStoreName {
                             Button {
-                                Task { await StoreNavigator.open(storeName: storeName) }
+                                Task { await StoreNavigator.open(storeName: storeName, navigationURL: order.storeNavigationURL) }
                             } label: {
                                 Label("导航到取货门店", systemImage: "map")
                                     .frame(maxWidth: .infinity)
