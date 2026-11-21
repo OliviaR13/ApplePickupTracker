@@ -40,7 +40,9 @@ struct ContentView: View {
             }
             .navigationTitle("Apple 取货追踪")
             .navigationBarTitleDisplayMode(.large)
-            .navigationDestination(for: PickupOrder.self) { OrderDetailView(initial: $0) }
+            .navigationDestination(for: PickupOrder.self) { OrderDetailView(initial: $0, loadOriginalMail: { messageID in
+                try await syncService.fetchOriginalMail(messageID: messageID)
+            }) }
             .toolbar {
                 ToolbarItem(placement: .topBarLeading) {
                     Button { showingSettings = true } label: { Image(systemName: "gearshape") }
