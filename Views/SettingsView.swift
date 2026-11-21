@@ -32,21 +32,21 @@ struct SettingsView: View {
     var body: some View {
         NavigationStack {
             Form {
-                outlookSection.listRowBackground(TrackerTheme.card)
+                outlookSection
                 Section("隐私与权限") {
                     Label("邮件内容仅在此设备上处理", systemImage: "iphone")
                     Label("订单数据保存在本机", systemImage: "lock.fill")
                     Label("Microsoft Graph：Mail.Read 只读权限", systemImage: "envelope.badge")
-                }.listRowBackground(TrackerTheme.card)
-                appearanceSection.listRowBackground(TrackerTheme.card)
-                automationSection.listRowBackground(TrackerTheme.card)
-                notificationSection.listRowBackground(TrackerTheme.card)
-                securitySection.listRowBackground(TrackerTheme.card)
-                if extensionInstalled { liveActivitySection.listRowBackground(TrackerTheme.card) }
+                }
+                appearanceSection
+                automationSection
+                notificationSection
+                securitySection
+                if extensionInstalled { liveActivitySection }
                 Section("同步") {
                     LabeledContent("上次同步", value: store.lastSync?.formatted(date: .abbreviated, time: .shortened) ?? "从未同步")
                     Text("iOS 会在系统资源允许时安排后台刷新，实际刷新时间由系统决定。").font(.footnote).foregroundStyle(.secondary)
-                }.listRowBackground(TrackerTheme.card)
+                }
                 Section {
                     Button("清除订单数据", role: .destructive) { confirmingClear = true }
                         .disabled(store.orders.isEmpty)
@@ -54,10 +54,10 @@ struct SettingsView: View {
                     Text("数据")
                 } footer: {
                     Text("只会删除本机保存的订单记录，不会影响 Outlook 邮箱里的邮件。")
-                }.listRowBackground(TrackerTheme.card)
+                }
                 Section("关于") {
                     LabeledContent("版本", value: versionText)
-                }.listRowBackground(TrackerTheme.card)
+                }
             }
             .scrollContentBackground(.hidden)
             .background(TrackerTheme.background)
@@ -83,7 +83,7 @@ struct SettingsView: View {
     private var outlookSection: some View {
         Section("Outlook 邮箱") {
             if oauth.isConnected {
-                Label("Outlook 已连接", systemImage: "checkmark.circle.fill").foregroundStyle(.green)
+                Label("Outlook 已连接", systemImage: "checkmark.circle.fill").foregroundStyle(Color(uiColor: .systemGreen))
                 if let email = oauth.accountEmail { LabeledContent("账户", value: email) }
                 Button("立即同步") { Task { isWorking = true; await onSync(); isWorking = false } }
                     .liquidGlassProminentButton()
@@ -148,9 +148,9 @@ struct SettingsView: View {
                 }
             }
             .frame(maxWidth: .infinity, minHeight: 82, alignment: .leading)
-            .padding(11)
+            .padding(TrackerTheme.Spacing.regular)
             .background(
-                RoundedRectangle(cornerRadius: 15, style: .continuous)
+                RoundedRectangle(cornerRadius: TrackerTheme.Radius.control, style: .continuous)
                     .fill(isSelected ? TrackerTheme.accent.opacity(0.10) : TrackerTheme.card)
             )
             .overlay {
@@ -218,7 +218,7 @@ struct SettingsView: View {
 
     private func diagnosticRow(_ title: String, ok: Bool) -> some View {
         Label(title, systemImage: ok ? "checkmark.circle.fill" : "xmark.circle.fill")
-            .foregroundStyle(ok ? .green : .red)
+            .foregroundStyle(ok ? Color(uiColor: .systemGreen) : Color(uiColor: .systemRed))
     }
 
     /// The Live Activity UI lives in `PickupWidget.appex`. Some sideloading setups drop app extensions.
