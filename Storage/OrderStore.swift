@@ -83,7 +83,11 @@ final class OrderStore: ObservableObject {
     /// unless any delay notice has been detected for that order.
     @discardableResult
     func completeExpiredPickupOrders(now: Date = Date()) -> Int {
-        let interval: TimeInterval = 7 * 24 * 60 * 60
+        let defaults = UserDefaults.standard
+        let enabled = defaults.object(forKey: "orders.autoCompleteEnabled") as? Bool ?? true
+        guard enabled else { return 0 }
+        let days = defaults.object(forKey: "orders.autoCompleteDays") as? Int ?? 7
+        let interval = TimeInterval(days) * 24 * 60 * 60
         var completedCount = 0
         for index in orders.indices {
             guard orders[index].status == .readyForPickup,
