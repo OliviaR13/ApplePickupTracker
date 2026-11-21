@@ -298,9 +298,11 @@ final class OutlookClient {
 
     /// Returns the first real Apple product image in the order's HTML body.
     /// Tracking pixels, logos and decorative email assets are ignored.
+    /// Returns the first real Apple product image in the order's HTML body.
+    /// Tracking pixels, logos and decorative email assets are ignored.
     private static func productImageURL(from html: String) -> String? {
-        guard let imageRegex = try? NSRegularExpression(pattern: #"(?is)<img\\b[^>]*>"#),
-              let sourceRegex = try? NSRegularExpression(pattern: #"(?i)\\bsrc\\s*=\\s*[\\"']([^\\"']+)[\\"']"#) else { return nil }
+        guard let imageRegex = try? NSRegularExpression(pattern: #"(?is)<img\b[^>]*>"#),
+              let sourceRegex = try? NSRegularExpression(pattern: #"(?i)\bsrc\s*=\s*["']([^"']+)["']"#) else { return nil }
         let fullRange = NSRange(html.startIndex..., in: html)
         for image in imageRegex.matches(in: html, range: fullRange) {
             guard let tagRange = Range(image.range, in: html) else { continue }
@@ -310,7 +312,8 @@ final class OutlookClient {
                   let valueRange = Range(match.range(at: 1), in: tag) else { continue }
             let raw = String(tag[valueRange]).replacingOccurrences(of: "&amp;", with: "&")
             guard let url = URL(string: raw), url.scheme?.lowercased() == "https",
-                  let host = url.host?.lowercased(), host.hasSuffix("apple.com"),
+                  let host = url.host?.lowercased(),
+                  host == "store.storeimages.cdn-apple.com" || host == "images.apple.com" || host.hasSuffix(".cdn-apple.com"),
                   url.path.contains("/is/") else { continue }
             return url.absoluteString
         }
