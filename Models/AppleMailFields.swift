@@ -174,14 +174,6 @@ extension AppleMailFields {
             let address = addressRows.joined(separator: " ").trimmingCharacters(in: .whitespacesAndNewlines)
             if !address.isEmpty { result.storeAddress = address }
         }
-        if result.storePhone == nil,
-           let phoneRow = rows.first(where: isPhoneLine) {
-            result.storePhone = normalizedPhone(phoneRow)
-        }
-        if result.storePostalCode == nil,
-           let postal = firstCapture(#"(?m)^.*?\b(\d{5,6})\b.*$"#, in: text) {
-            result.storePostalCode = postal
-        }
         return result
     }
 
