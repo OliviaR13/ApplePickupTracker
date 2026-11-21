@@ -209,7 +209,7 @@ struct OrderDetailView: View {
     }
 
     private var pickupPassCard: some View {
-        GlassCard {
+        ContentCard {
             VStack(alignment: .leading, spacing: 14) {
                 Label("到店取货凭证", systemImage: "qrcode")
                     .font(.headline)
@@ -272,7 +272,7 @@ struct OrderDetailView: View {
     }
 
     private var financialCard: some View {
-        GlassCard {
+        ContentCard {
             VStack(alignment: .leading, spacing: 12) {
                 Label("金额明细", systemImage: "yensign.circle")
                     .font(.headline)
@@ -291,7 +291,7 @@ struct OrderDetailView: View {
     }
 
     private var storeCard: some View {
-        GlassCard {
+        ContentCard {
             VStack(alignment: .leading, spacing: 12) {
                 Label("取货门店", systemImage: "mappin.and.ellipse")
                     .font(.headline)
@@ -315,7 +315,7 @@ struct OrderDetailView: View {
     }
 
     private var detailsCard: some View {
-        GlassCard {
+        ContentCard {
             VStack(alignment: .leading, spacing: 12) {
                 Label("订单信息", systemImage: "doc.text")
                     .font(.headline)
@@ -367,7 +367,7 @@ struct OrderDetailView: View {
     // MARK: - Timeline
 
     private var timelineCard: some View {
-        GlassCard {
+        ContentCard {
             VStack(alignment: .leading, spacing: 14) {
                 Label("订单动态", systemImage: "clock.arrow.circlepath")
                     .font(.headline)
