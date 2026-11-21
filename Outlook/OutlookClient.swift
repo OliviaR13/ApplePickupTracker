@@ -6,6 +6,8 @@ struct ParsedPickupMail {
     let storeName: String
     let pickupNote: String?
     let metadata: AppleOrderMetadata
+    let pickupQRCode: String?
+    let walletPassURL: String?
     let status: PickupStatus
     let messageID: String
     let date: Date
@@ -34,6 +36,18 @@ private struct GraphMessagePage: Decodable {
         case value
         case nextLink = "@odata.nextLink"
     }
+}
+
+
+private struct GraphAttachmentPage: Decodable {
+    struct Attachment: Decodable {
+        let name: String?
+        let contentType: String?
+        let contentBytes: String?
+        let contentId: String?
+        let isInline: Bool?
+    }
+    let value: [Attachment]
 }
 
 final class OutlookClient {
@@ -91,16 +105,98 @@ final class OutlookClient {
                 let date = message.receivedDateTime.flatMap { value in
                     Self.isoPlain.date(from: value) ?? Self.isoFractional.date(from: value)
                 } ?? Date()
+                let rawBody = message.body?.content ?? ""
+                let assets: (qr: String?, wallet: String?)
+                if status == .readyForPickup {
+                    assets = await fetchPickupAssets(messageID: message.id, html: rawBody, token: token)
+                } else {
+                    assets = (nil, nil)
+                }
                 parsed.append(ParsedPickupMail(orderNumber: order, productName: Self.productName(from: content),
                                                storeName: AppleMailFields.storeName(from: content),
                                                pickupNote: AppleMailFields.pickupNote(from: content),
                                                metadata: AppleMailFields.orderMetadata(from: content),
+                                               pickupQRCode: assets.qr, walletPassURL: assets.wallet,
                                                status: status, messageID: message.id, date: date))
             }
             nextURL = page.nextLink.flatMap(URL.init(string:))
         }
         return OutlookFetchResult(messages: parsed.sorted { $0.date < $1.date },
                                   scannedCount: scanned, appleSenderCount: appleCount)
+    }
+
+
+    /// Extracts the pickup QR and Apple Wallet link only from ready-for-pickup messages.
+    /// Outlook may expose QR images as data URIs or as inline CID file attachments.
+    private func fetchPickupAssets(messageID: String, html: String, token: String) async -> (qr: String?, wallet: String?) {
+        let walletURL = Self.walletPassURL(in: html)
+        if let dataURI = Self.qrDataURI(in: html) {
+            return (dataURI, walletURL)
+        }
+
+        guard let encodedID = messageID.addingPercentEncoding(withAllowedCharacters: .urlPathAllowed),
+              let url = URL(string: "https://graph.microsoft.com/v1.0/me/messages/\(encodedID)/attachments?$select=name,contentType,contentBytes,contentId,isInline") else {
+            return (nil, walletURL)
+        }
+        do {
+            var request = URLRequest(url: url)
+            request.setValue("Bearer \(token)", forHTTPHeaderField: "Authorization")
+            request.timeoutInterval = 20
+            let (data, response) = try await URLSession.shared.data(for: request)
+            guard let http = response as? HTTPURLResponse, (200..<300).contains(http.statusCode),
+                  let page = try? JSONDecoder().decode(GraphAttachmentPage.self, from: data) else {
+                return (nil, walletURL)
+            }
+
+            let referencedCID = Set(Self.cidReferences(in: html))
+            let candidates = page.value.filter { attachment in
+                let type = attachment.contentType?.lowercased() ?? ""
+                let name = attachment.name?.lowercased() ?? ""
+                let cid = attachment.contentId.map { referencedCID.contains($0) } ?? false
+                return type.contains("image/") && (
+                    name.contains("qr") || name.contains("barcode") || cid
+                    || (attachment.isInline == true && referencedCID.isEmpty && type.contains("png"))
+                )
+            }
+            for attachment in candidates {
+                if let bytes = attachment.contentBytes, !bytes.isEmpty {
+                    return (bytes, walletURL)
+                }
+            }
+        } catch {
+            // Asset extraction is optional; the order status remains useful if attachments fail.
+        }
+        return (nil, walletURL)
+    }
+
+    private static func qrDataURI(in html: String) -> String? {
+        let pattern = #"(?is)<img[^>]*(?:alt=["'][^"']*qr[^"']*["'][^>]*src|src)[^>]*=["']data:image/(?:png|jpeg|jpg);base64,([A-Za-z0-9+/=]+)"#
+        guard let match = html.range(of: pattern, options: .regularExpression) else { return nil }
+        let fragment = String(html[match])
+        guard let capture = fragment.range(of: #"data:image/[^;]+;base64,([A-Za-z0-9+/=]+)"#, options: .regularExpression) else { return nil }
+        let value = String(fragment[capture])
+        return value.components(separatedBy: ",").last
+    }
+
+    private static func cidReferences(in html: String) -> [String] {
+        guard let regex = try? NSRegularExpression(pattern: #"(?i)cid:([^"'\s>]+)"#) else { return [] }
+        let range = NSRange(html.startIndex..., in: html)
+        return regex.matches(in: html, range: range).compactMap {
+            Range($0.range(at: 1), in: html).map { String(html[$0]) }
+        }
+    }
+
+    private static func walletPassURL(in html: String) -> String? {
+        guard let regex = try? NSRegularExpression(pattern: #"(?is)<a[^>]+href=["'](https://[^"']+)["'][^>]*>.*?(?:add to apple wallet|apple wallet|加入 apple 钱包|加入 apple 錢包).*?</a>"#) else { return nil }
+        let range = NSRange(html.startIndex..., in: html)
+        for match in regex.matches(in: html, range: range) {
+            guard let valueRange = Range(match.range(at: 1), in: html),
+                  let url = URL(string: String(html[valueRange])),
+                  let host = url.host?.lowercased(),
+                  host == "apple.com" || host.hasSuffix(".apple.com") else { continue }
+            return url.absoluteString
+        }
+        return nil
     }
 
     private static func validate(_ response: URLResponse, data: Data) throws {
