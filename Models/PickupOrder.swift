@@ -15,6 +15,10 @@ struct PickupOrder: Codable, Identifiable, Hashable {
     var storeAddress: String?
     var storePostalCode: String?
     var storePhone: String?
+    /// Base64-encoded PNG/JPEG pickup QR from Apple's ready-for-pickup email.
+    var pickupQRCode: String?
+    /// Validated HTTPS Apple Wallet pass URL from the same message.
+    var walletPassURL: String?
     var status: PickupStatus
     var lastUpdated: Date
     var sourceMessageID: String
