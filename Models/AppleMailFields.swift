@@ -163,15 +163,17 @@ extension AppleMailFields {
             if start < rows.count {
                 for row in rows[start...] {
                     let lower = row.lowercased()
-                    if lower.contains("营业时间") || lower.contains("營業時間")
+                    let stopAfterCurrentRow = lower.contains("营业时间") || lower.contains("營業時間")
                         || lower.contains("opening hours") || lower.contains("store hours")
                         || lower.contains("路线") || lower.contains("路線")
                         || lower.contains("directions") || lower.contains("取货政策")
                         || lower.contains("取貨政策") || lower.contains("pickup policy")
                         || lower.contains("问题") || lower.contains("問題") || lower.contains("questions")
-                        || isProductLine(row) { break }
-                    // Apple HK may concatenate the address, phone number and
-                    // navigation links into one HTML text node. Split these fields.
+                        || isProductLine(row)
+                        || ["apple watch", "iphone", "ipad", "macbook", "airpods", "apple pencil", "homepod", "apple tv", "magic keyboard"]
+                            .contains(where: { lower.contains($0) })
+                    // Apple HK may concatenate the address, product title, phone and navigation links
+                    // into one text node. Clean and retain the address prefix before stopping.
                     let phonePattern = #"((?<!\d)(?:\+?852[\s-]?)?\d{4}[\s-]?\d{4}(?!\d))"#
                     if let phone = firstCapture(phonePattern, in: row) {
                         result.storePhone = normalizedPhone(phone)
@@ -185,6 +187,7 @@ extension AppleMailFields {
                     }
                     let cleaned = cleanStoreAddress(row, phonePattern: phonePattern)
                     if !cleaned.isEmpty, addressRows.count < 5 { addressRows.append(cleaned) }
+                    if stopAfterCurrentRow { break }
                 }
             }
             let address = addressRows.joined(separator: " ").trimmingCharacters(in: .whitespacesAndNewlines)
