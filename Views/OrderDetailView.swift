@@ -56,6 +56,13 @@ struct OrderDetailView: View {
         .navigationTitle("订单详情")
         .navigationBarTitleDisplayMode(.inline)
 .sensoryFeedback(.success, trigger: activityNote)
+        .sheet(isPresented: $showingOriginalMail) {
+            NavigationStack {
+                ScrollView { Text(originalMail?.body ?? "正在加载邮件原文…").textSelection(.enabled).padding() }
+                    .navigationTitle(originalMail?.subject ?? "邮件原文")
+                    .toolbar { ToolbarItem(placement: .topBarTrailing) { Button("完成") { showingOriginalMail = false } } }
+            }
+        }
         .fullScreenCover(isPresented: $showingQRCode, onDismiss: restoreBrightness) {
             if let image = pickupQRCodeImage {
                 PickupQRCodeFullscreen(image: image, orderNumber: order.orderNumber)
@@ -373,6 +380,17 @@ struct OrderDetailView: View {
                         }
                     }
                     VStack(alignment: .leading, spacing: 3) {
+                        if let messageID = event.messageID {
+                            Button(event.status.title) {
+                                originalMail = nil
+                                showingOriginalMail = true
+                                Task { originalMail = try? await loadOriginalMail(messageID) }
+                            }.font(.subheadline.weight(index == 0 ? .semibold : .regular))
+                        } else {
+                            Text(event.status.title)
+                                .font(.subheadline.weight(index == 0 ? .semibold : .regular))
+                        }
+                        /* event status title */
                         Text(event.status.title)
                             .font(.subheadline.weight(index == 0 ? .semibold : .regular))
                             .foregroundStyle(index == 0 ? Color.primary : Color.secondary)
