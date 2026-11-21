@@ -41,17 +41,21 @@ final class SyncService {
         defer { isRunning = false }
         let scanStartedAt = Date()
         let result = try await outlook.fetchAppleOrderMessages(since: scanStart())
-        var newlyReady: [PickupOrder] = []
+        var newlyReadyOrderNumbers = Set<String>()
         for message in result.messages {
             let becameReady = store.upsert(orderNumber: message.orderNumber, product: message.productName, store: message.storeName,
                                            pickupNote: message.pickupNote, status: message.status, messageID: message.messageID, date: message.date,
                                            persist: false)
-            if becameReady, let order = store.orders.first(where: { $0.orderNumber == message.orderNumber }) {
-                newlyReady.append(order)
-            }
+            if becameReady { newlyReadyOrderNumbers.insert(message.orderNumber) }
         }
         if !result.messages.isEmpty { store.commit() }
         await activity.reconcile(with: store.orders)
+
+        // Notify only if the final state after applying every fetched email is still ready.
+        // This avoids a stale "ready for pickup" alert when a later email already says picked up.
+        let newlyReady = store.orders.filter {
+            newlyReadyOrderNumbers.contains($0.orderNumber) && $0.status == .readyForPickup
+        }
         for order in newlyReady {
             await NotificationManager.shared.notifyReady(order: order)
         }
