@@ -79,7 +79,7 @@ struct SettingsView: View {
         .alert("Outlook", isPresented: Binding(get: { message != nil }, set: { if !$0 { message = nil } })) {
             Button("好", role: .cancel) { message = nil }
         } message: { Text(message ?? "") }
-        .confirmationDialog("清除所有已保存的订单？", isPresented: $confirmingClear, titleVisibility: .visible) {
+        .alert("清除所有已保存的订单？", isPresented: $confirmingClear) {
             Button("清除", role: .destructive) { Task { await clearData() } }
             Button("取消", role: .cancel) {}
         } message: {
