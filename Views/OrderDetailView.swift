@@ -58,7 +58,14 @@ struct OrderDetailView: View {
 .sensoryFeedback(.success, trigger: activityNote)
         .sheet(isPresented: $showingOriginalMail) {
             NavigationStack {
-                ScrollView { Text(originalMail?.body ?? "正在加载邮件原文…").textSelection(.enabled).padding() }
+                ScrollView {
+                    VStack(alignment: .leading, spacing: 12) {
+                        Text(originalMail?.sender ?? "").font(.footnote).foregroundStyle(.secondary)
+                        if let date = originalMail?.receivedAt { Text(date.formatted(date: .long, time: .shortened)).font(.caption).foregroundStyle(.tertiary) }
+                        Divider()
+                        Text(originalMail?.body ?? "正在加载邮件原文…").textSelection(.enabled).frame(maxWidth: .infinity, alignment: .leading)
+                    }.padding()
+                }
                     .navigationTitle(originalMail?.subject ?? "邮件原文")
                     .toolbar { ToolbarItem(placement: .topBarTrailing) { Button("完成") { showingOriginalMail = false } } }
             }
@@ -380,11 +387,14 @@ struct OrderDetailView: View {
                         }
                     }
                     VStack(alignment: .leading, spacing: 3) {
-                        if let messageID = event.messageID {
+                        if let messageID = event.messageID, messageID != "manual" {
                             Button {
                                 originalMail = nil
                                 showingOriginalMail = true
-                                Task { originalMail = try? await loadOriginalMail(messageID) }
+                                Task {
+                                    do { originalMail = try await loadOriginalMail(messageID) }
+                                    catch { originalMail = OriginalMailMessage(subject: "无法加载邮件", sender: "", receivedAt: nil, body: error.localizedDescription) }
+                                }
                             } label: {
                                 VStack(alignment: .leading, spacing: 3) {
                                     Text(event.status.title)
