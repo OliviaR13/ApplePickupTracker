@@ -50,7 +50,7 @@ struct OrderAlert: Codable, Hashable, Identifiable {
         var found: [OrderAlert] = []
         func add(_ id: String, _ title: String, _ detail: String) {
             guard !found.contains(where: { $0.id == id }) else { return }
-            found.append(OrderAlert(id: id, title: title, detail: detail, date: date))
+            found.append(OrderAlert(id: "\(id)-\(date.timeIntervalSince1970)", title: title, detail: detail, date: date))
         }
         if ["order delayed", "delivery delayed", "pickup delayed", "delay in your order",
             "订单延期", "取货延期", "配送延迟", "发货延迟", "延迟通知", "延期通知",
