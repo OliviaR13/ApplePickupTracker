@@ -111,7 +111,7 @@ struct OrderDetailView: View {
                     Text("数量")
                         .foregroundStyle(.secondary)
                     Spacer()
-                    Text(order.quantity.map(String.init) ?? "—")
+                    Text(order.quantity.map { String($0) } ?? "—")
                         .monospacedDigit()
                 }
                 if let amount = order.productAmount {
