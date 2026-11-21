@@ -66,10 +66,10 @@ struct SettingsView: View {
         .toolbar {
             ToolbarItem(placement: .topBarLeading) {
                 Button(action: onClose) {
-                    Image(systemName: "xmark")
+                    Image(systemName: "chevron.left")
                         .font(.body.weight(.semibold))
                 }
-                .accessibilityLabel("关闭设置")
+                .accessibilityLabel("返回")
             }
         }
         .task {
