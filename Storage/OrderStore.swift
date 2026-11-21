@@ -49,6 +49,9 @@ final class OrderStore: ObservableObject {
                 if let value = metadata.storePostalCode { orders[index].storePostalCode = value }
                 if let value = metadata.storePhone { orders[index].storePhone = value }
             }
+            if status == .readyForPickup, orders[index].readyForPickupAt == nil {
+                orders[index].readyForPickupAt = date
+            }
             if let pickupQRCode, !pickupQRCode.isEmpty { orders[index].pickupQRCode = pickupQRCode }
             if let walletPassURL, !walletPassURL.isEmpty { orders[index].walletPassURL = walletPassURL }
             if !alerts.isEmpty {
@@ -74,6 +77,31 @@ final class OrderStore: ObservableObject {
         let becameReady = orders[target].status == .readyForPickup && previousStatus != .readyForPickup
         if persist { commit() }
         return becameReady
+    }
+
+    /// Automatically closes pickup orders seven days after the ready email,
+    /// unless any delay notice has been detected for that order.
+    @discardableResult
+    func completeExpiredPickupOrders(now: Date = Date()) -> Int {
+        let interval: TimeInterval = 7 * 24 * 60 * 60
+        var completedCount = 0
+        for index in orders.indices {
+            guard orders[index].status == .readyForPickup,
+                  let readyAt = orders[index].readyForPickupAt,
+                  now.timeIntervalSince(readyAt) >= interval else { continue }
+            let hasDelayNotice = (orders[index].alerts ?? []).contains {
+                $0.id.hasPrefix("delay-") || $0.title.localizedCaseInsensitiveContains("延期")
+            }
+            guard !hasDelayNotice else { continue }
+
+            let completionDate = readyAt.addingTimeInterval(interval)
+            orders[index].status = .completed
+            orders[index].lastUpdated = completionDate
+            orders[index].history.append(OrderEvent(status: .completed, date: completionDate))
+            completedCount += 1
+        }
+        if completedCount > 0 { commit() }
+        return completedCount
     }
 
     /// Sorts newest-first and saves to disk.
