@@ -168,6 +168,7 @@ extension AppleMailFields {
                     if row == AppleMailFields.storeName(from: text) { continue }
                     if row.range(of: #"\b\d{5,6}\b"#, options: .regularExpression) != nil {
                         result.storePostalCode = firstCapture(#"\b(\d{5,6})\b"#, in: row)
+                        continue
                     }
                     if addressRows.count < 5 { addressRows.append(row) }
                 }
