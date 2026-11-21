@@ -83,7 +83,7 @@ final class OutlookClient {
             let token = try await oauth.validAccessToken()
             var request = URLRequest(url: url)
             request.setValue("Bearer \(token)", forHTTPHeaderField: "Authorization")
-            request.setValue("outlook.body-content-type=\"text\"", forHTTPHeaderField: "Prefer")
+            request.setValue("outlook.body-content-type=\"html\"", forHTTPHeaderField: "Prefer")
             request.timeoutInterval = 30
             let (data, response) = try await URLSession.shared.data(for: request)
             try Self.validate(response, data: data)
@@ -170,15 +170,24 @@ final class OutlookClient {
     }
 
     private static func qrDataURI(in html: String) -> String? {
-        let pattern = #"(?is)<img[^>]*(?:alt=["'][^"']*qr[^"']*["'][^>]*src|src)[^>]*=["']data:image/(?:png|jpeg|jpg);base64,([A-Za-z0-9+/=]+)"#
-        guard let match = html.range(of: pattern, options: .regularExpression) else { return nil }
-        let fragment = String(html[match])
-        guard let capture = fragment.range(of: #"data:image/[^;]+;base64,([A-Za-z0-9+/=]+)"#, options: .regularExpression) else { return nil }
-        let value = String(fragment[capture])
-        return value.components(separatedBy: ",").last
+        let qrPattern = #"(?is)<img\b(?=[^>]*\balt=["'][^"']*qr[^"']*["'])[^>]*\bsrc=["']data:image/[^;]+;base64,([A-Za-z0-9+/=]+)["']"#
+        let fallbackPattern = #"(?is)<img\b[^>]*\bsrc=["']data:image/(?:png|jpeg|jpg);base64,([A-Za-z0-9+/=]+)["']"#
+        for pattern in [qrPattern, fallbackPattern] {
+            guard let regex = try? NSRegularExpression(pattern: pattern),
+                  let match = regex.firstMatch(in: html, range: NSRange(html.startIndex..., in: html)),
+                  let range = Range(match.range(at: 1), in: html) else { continue }
+            return String(html[range])
+        }
+        return nil
     }
 
     private static func cidReferences(in html: String) -> [String] {
+        let qrImagePattern = #"(?is)<img\b(?=[^>]*\balt=["'][^"']*qr[^"']*["'])[^>]*\bsrc=["']cid:([^"']+)["']"#
+        if let regex = try? NSRegularExpression(pattern: qrImagePattern),
+           let match = regex.firstMatch(in: html, range: NSRange(html.startIndex..., in: html)),
+           let range = Range(match.range(at: 1), in: html) {
+            return [String(html[range])]
+        }
         guard let regex = try? NSRegularExpression(pattern: #"(?i)cid:([^"'\s>]+)"#) else { return [] }
         let range = NSRange(html.startIndex..., in: html)
         return regex.matches(in: html, range: range).compactMap {
