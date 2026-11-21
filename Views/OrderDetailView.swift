@@ -26,10 +26,9 @@ struct OrderDetailView: View {
 
     var body: some View {
         ScrollView {
-            VStack(alignment: .leading, spacing: 18) {
+            VStack(alignment: .leading, spacing: TrackerTheme.Spacing.section) {
                 StorePhotoBanner(storeName: order.recognizedStoreName)
-                LiquidGlassGroup(spacing: 12) {
-                    VStack(alignment: .leading, spacing: 18) {
+                VStack(alignment: .leading, spacing: TrackerTheme.Spacing.section) {
                         statusHero
                         itemCard
                         detailsCard
@@ -48,12 +47,11 @@ struct OrderDetailView: View {
                             .liquidGlassButton()
                         }
                         liveActivityControls
-                    }
                 }
             }
-            .padding()
+            .padding(TrackerTheme.Spacing.screenInset)
         }
-        .background(Color(uiColor: .systemGroupedBackground))
+        .background(TrackerTheme.background)
         .navigationTitle("订单详情")
         .navigationBarTitleDisplayMode(.inline)
         .sensoryFeedback(.success, trigger: activityNote)
@@ -156,9 +154,9 @@ struct OrderDetailView: View {
             }
         }
         .foregroundStyle(.white)
-        .padding(20)
+        .padding(TrackerTheme.Spacing.cardInset)
         .frame(maxWidth: .infinity, alignment: .leading)
-        .background(order.status.gradient, in: RoundedRectangle(cornerRadius: 24, style: .continuous))
+        .background(order.status.gradient, in: RoundedRectangle(cornerRadius: TrackerTheme.Radius.prominent, style: .continuous))
         .shadow(color: order.status.tint.opacity(0.28), radius: 14, y: 6)
         .animation(.easeInOut, value: order.status)
     }
@@ -222,7 +220,7 @@ struct OrderDetailView: View {
                                 .scaledToFit()
                                 .frame(maxWidth: 240, maxHeight: 240)
                                 .padding(14)
-                                .background(Color.white, in: RoundedRectangle(cornerRadius: 16))
+                                .background(Color.white, in: RoundedRectangle(cornerRadius: TrackerTheme.Radius.control))
                                 .blur(radius: protectQRCodeWithBiometrics && !isQRCodeUnlocked ? 13 : 0)
 
                             if protectQRCodeWithBiometrics && !isQRCodeUnlocked {
@@ -234,7 +232,7 @@ struct OrderDetailView: View {
                                 }
                                 .foregroundStyle(.primary)
                                 .padding(14)
-                                .background(.regularMaterial, in: RoundedRectangle(cornerRadius: 14))
+                                .background(.regularMaterial, in: RoundedRectangle(cornerRadius: TrackerTheme.Radius.control))
                             }
                         }
                         .frame(maxWidth: .infinity)
