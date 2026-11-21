@@ -25,7 +25,13 @@ struct ApplePickupTrackerApp: App {
                 }
                 .onChange(of: scenePhase) { _, phase in
                     if phase == .active, container.oauth.isConnected {
-                        Task { try? await container.syncService.sync() }
+                        Task {
+                            do {
+                                try await container.syncService.sync()
+                            } catch {
+                                container.store.setSyncResult("同步失败：\(SyncErrorText.describe(error))")
+                            }
+                        }
                     }
                 }
         }
