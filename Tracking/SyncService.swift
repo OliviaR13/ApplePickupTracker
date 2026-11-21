@@ -12,7 +12,7 @@ final class SyncService {
     }
 
     /// Bump when the mail parser changes so the next sync re-scans the full window.
-    private static let parserVersion = 4
+    private static let parserVersion = 5
     private static let lastScanKey = "outlook.lastScanDate"
     private static let parserVersionKey = "outlook.parserVersion"
 
@@ -56,7 +56,7 @@ final class SyncService {
         for message in result.messages {
             let becameReady = store.upsert(orderNumber: message.orderNumber, product: message.productName, store: message.storeName,
                                            pickupNote: message.pickupNote, metadata: message.metadata,
-                                           pickupQRCode: message.pickupQRCode, walletPassURL: message.walletPassURL, status: message.status, messageID: message.messageID, date: message.date,
+                                           pickupQRCode: message.pickupQRCode, walletPassURL: message.walletPassURL, alerts: message.alerts, status: message.status, messageID: message.messageID, date: message.date,
                                            persist: false)
             if becameReady { newlyReadyOrderNumbers.insert(message.orderNumber) }
         }
