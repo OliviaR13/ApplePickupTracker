@@ -65,7 +65,7 @@ final class SyncService {
         for message in result.messages {
             let becameReady = store.upsert(orderNumber: message.orderNumber, product: message.productName, store: message.storeName,
                                            pickupNote: message.pickupNote, metadata: message.metadata,
-                                           pickupQRCode: message.pickupQRCode, walletPassURL: message.walletPassURL, alerts: message.alerts, status: message.status, messageID: message.messageID, date: message.date,
+                                           productImageURL: message.productImageURL, pickupQRCode: message.pickupQRCode, walletPassURL: message.walletPassURL, alerts: message.alerts, status: message.status, messageID: message.messageID, date: message.date,
                                            persist: false)
             if becameReady { newlyReadyOrderNumbers.insert(message.orderNumber) }
         }
