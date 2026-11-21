@@ -274,7 +274,7 @@ struct OrderDetailView: View {
         let formatter = NumberFormatter()
         formatter.numberStyle = .currency
         formatter.currencyCode = order.currencyCode ?? "CNY"
-        formatter.locale = Locale(identifier: "zh_CN")
+        formatter.locale = Locale(identifier: order.currencyCode == "HKD" ? "zh_HK" : "zh_CN")
         return formatter.string(from: amount as NSDecimalNumber) ?? amount.description
     }
 
