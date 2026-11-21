@@ -49,6 +49,12 @@ struct SettingsView: View {
             Section {
                 Button("清除订单数据", role: .destructive) { confirmingClear = true }
                     .disabled(store.orders.isEmpty)
+                    .alert("清除所有已保存的订单？", isPresented: $confirmingClear) {
+                        Button("清除", role: .destructive) { Task { await clearData() } }
+                        Button("取消", role: .cancel) {}
+                    } message: {
+                        Text("订单记录和锁定屏幕上的实时活动都会被移除，下次同步会重新扫描邮箱。")
+                    }
             } header: {
                 Text("数据")
             } footer: {
@@ -79,12 +85,7 @@ struct SettingsView: View {
         .alert("Outlook", isPresented: Binding(get: { message != nil }, set: { if !$0 { message = nil } })) {
             Button("好", role: .cancel) { message = nil }
         } message: { Text(message ?? "") }
-        .alert("清除所有已保存的订单？", isPresented: $confirmingClear) {
-            Button("清除", role: .destructive) { Task { await clearData() } }
-            Button("取消", role: .cancel) {}
-        } message: {
-            Text("订单记录和锁定屏幕上的实时活动都会被移除，下次同步会重新扫描邮箱。")
-        }
+
     }
 
     private var outlookSection: some View {
