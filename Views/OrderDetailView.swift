@@ -297,7 +297,7 @@ struct OrderDetailView: View {
                     .font(.headline)
                 Text(order.displayStoreName)
                     .font(.body.weight(.semibold))
-                if let address = order.storeAddress, !address.isEmpty {
+                if let address = order.displayStoreAddress {
                     Text(address)
                         .font(.subheadline)
                         .foregroundStyle(.secondary)
