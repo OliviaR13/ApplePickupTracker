@@ -23,7 +23,7 @@ final class OrderStore: ObservableObject {
     /// then call `commit()` once so the list is sorted and written to disk a single time.
     @discardableResult
     func upsert(orderNumber: String, product: String, store: String, pickupNote: String? = nil,
-                metadata: AppleOrderMetadata? = nil, pickupQRCode: String? = nil, walletPassURL: String? = nil, status: PickupStatus, messageID: String, date: Date,
+                metadata: AppleOrderMetadata? = nil, pickupQRCode: String? = nil, walletPassURL: String? = nil, alerts: [OrderAlert] = [], status: PickupStatus, messageID: String, date: Date,
                 persist: Bool = true) -> Bool {
         guard !ignoredNumbers.contains(orderNumber) else { return false }
         let existing = orders.firstIndex(where: { $0.orderNumber == orderNumber })
@@ -51,6 +51,13 @@ final class OrderStore: ObservableObject {
             }
             if let pickupQRCode, !pickupQRCode.isEmpty { orders[index].pickupQRCode = pickupQRCode }
             if let walletPassURL, !walletPassURL.isEmpty { orders[index].walletPassURL = walletPassURL }
+            if !alerts.isEmpty {
+                var saved = orders[index].alerts ?? []
+                for alert in alerts where !saved.contains(where: { $0.id == alert.id && abs($0.date.timeIntervalSince(alert.date)) < 60 }) {
+                    saved.append(alert)
+                }
+                orders[index].alerts = saved.sorted { $0.date > $1.date }
+            }
             target = index
         } else {
             orders.append(PickupOrder(orderNumber: orderNumber, productName: product, storeName: store, pickupNote: pickupNote,
@@ -61,7 +68,7 @@ final class OrderStore: ObservableObject {
                                       storePhone: metadata?.storePhone,
                                       pickupQRCode: pickupQRCode, walletPassURL: walletPassURL,
                                       status: status, lastUpdated: date, sourceMessageID: messageID,
-                                      history: [OrderEvent(status: status, date: date)]))
+                                      history: [OrderEvent(status: status, date: date)], alerts: alerts.isEmpty ? nil : alerts))
             target = orders.count - 1
         }
         let becameReady = orders[target].status == .readyForPickup && previousStatus != .readyForPickup
