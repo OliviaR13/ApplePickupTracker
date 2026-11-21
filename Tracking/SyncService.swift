@@ -69,7 +69,17 @@ final class SyncService {
                                            persist: false)
             if becameReady { newlyReadyOrderNumbers.insert(message.orderNumber) }
         }
+        for message in result.messages {
+            guard let order = store.order(withNumber: message.orderNumber) else { continue }
+            for alert in message.alerts { await NotificationManager.shared.notifyAlert(alert, order: order) }
+        }
+        let previouslyCompleted = Set(store.orders.filter { $0.status == .completed }.map(\\.orderNumber))
         let autoCompletedCount = store.completeExpiredPickupOrders()
+        if autoCompletedCount > 0 {
+            for order in store.orders where order.status == .completed && !previouslyCompleted.contains(order.orderNumber) {
+                await NotificationManager.shared.notifyCompleted(order: order)
+            }
+        }
         if !result.messages.isEmpty { store.commit() }
         await activity.reconcile(with: store.orders)
 
