@@ -236,13 +236,27 @@ extension AppleMailFields {
     static func cleanStoreAddress(_ row: String) -> String {
         let phonePattern = #"((?<!\d)(?:\+?852[\s-]?)?\d{4}[\s-]?\d{4}(?!\d))"#
         var value = row.replacingOccurrences(of: phonePattern, with: " ", options: .regularExpression)
-        // Apple HK may append the product title directly after the street address.
+        // Apple HK may append product titles; mainland China emails may append city/postal
+        // metadata and a navigation link to the same text node as the street address.
         value = removingProductSuffix(from: value)
         if let boundary = value.range(of: #"(?i)\s+(?:數量|数量|qty|quantity)\b"#, options: .regularExpression) {
             value = String(value[..<boundary.lowerBound])
         }
+        // Remove a trailing mainland postal-code segment (for example "深圳 518001"),
+        // while preserving the actual street and mall/floor lines before it.
+        value = value.replacingOccurrences(
+            of: #"\s+(?:(?:深圳|广东|Guangdong)\s*[,，]?\s*)?\d{6}\b.*$"#,
+            with: "",
+            options: [.regularExpression, .caseInsensitive]
+        )
+        // A postal-code-only row such as "深圳, 广东 518001" is metadata, not an address line.
+        if value.range(of: #"^(?:深圳|广东|中国|Guangdong|China)[,，\s]*(?:广东|深圳)?[,，\s]*\d{6}\b.*$"#,
+                       options: [.regularExpression, .caseInsensitive]) != nil {
+            value = ""
+        }
         let trailingLabels = [
             "服務時間和交通指引", "服务时间和交通指引", "營業時間和交通指引", "营业时间和交通指引",
+            "營業時間與路線", "营业时间与路线", "服務時間與路線", "服务时间与路线",
             "服務時間", "服务时间", "交通指引", "取貨項目", "取货项目",
             "店舖詳情", "店铺详情", "查看地圖", "查看地图", "directions", "store hours",
             "opening hours", "pickup items", "問題", "问题", "questions"
