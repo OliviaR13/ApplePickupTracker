@@ -10,6 +10,13 @@ extension PickupOrder {
     }
 
     var displayStoreName: String { recognizedStoreName ?? "未识别门店" }
+
+    /// Cleans previously persisted address strings as well as newly parsed values.
+    var displayStoreAddress: String? {
+        guard let storeAddress else { return nil }
+        let cleaned = AppleMailFields.cleanStoreAddress(storeAddress)
+        return cleaned.isEmpty ? nil : cleaned
+    }
 }
 
 enum AppleMailFields {
@@ -30,12 +37,29 @@ enum AppleMailFields {
 
     /// Removes product details accidentally concatenated to Apple's store label.
     /// Applied at display time as well as parsing time so previously saved orders are repaired.
-    static func cleanStoreName(_ raw: String) -> String {
-        var value = raw.trimmingCharacters(in: .whitespacesAndNewlines)
-        let productBoundary = #"(?i)\s+(?=(?:apple\s+watch|iphone|ipad|macbook|airpods|apple\s+pencil|homepod|apple\s+tv|magic\s+keyboard)\b)"#
-        if let range = value.range(of: productBoundary, options: .regularExpression) {
-            value = String(value[..<range.lowerBound])
+    private static let productMarkers = [
+        "Apple Watch", "iPhone", "iPad", "MacBook", "AirPods",
+        "Apple Pencil", "HomePod", "Apple TV", "Magic Keyboard"
+    ]
+
+    /// Truncates a combined Apple address/product text node at the first product title.
+    /// Literal matching is more robust than a regex look-ahead for localized HTML text nodes.
+    private static func removingProductSuffix(from raw: String) -> String {
+        var value = raw
+        let matches = productMarkers.compactMap { marker -> String.Index? in
+            guard let range = value.range(of: marker, options: .caseInsensitive),
+                  range.lowerBound > value.startIndex else { return nil }
+            let previous = value[value.index(before: range.lowerBound)]
+            return previous.isWhitespace ? range.lowerBound : nil
         }
+        if let boundary = matches.min() {
+            value = String(value[..<boundary])
+        }
+        return value
+    }
+
+    static func cleanStoreName(_ raw: String) -> String {
+        var value = removingProductSuffix(from: raw.trimmingCharacters(in: .whitespacesAndNewlines))
         let suffixBoundary = #"(?i)\s+(?:數量|数量|qty|quantity)\s*[:：]?\s*\d+.*$"#
         value = value.replacingOccurrences(of: suffixBoundary, with: "", options: .regularExpression)
         return value.trimmingCharacters(in: .whitespacesAndNewlines.union(CharacterSet(charactersIn: "；;|›»·")))
@@ -198,7 +222,7 @@ extension AppleMailFields {
                     if row.range(of: #"\b\d{5,6}\b"#, options: .regularExpression) != nil {
                         result.storePostalCode = firstCapture(#"\b(\d{5,6})\b"#, in: row)
                     }
-                    let cleaned = cleanStoreAddress(row, phonePattern: phonePattern)
+                    let cleaned = cleanStoreAddress(row)
                     if !cleaned.isEmpty, addressRows.count < 5 { addressRows.append(cleaned) }
                     if stopAfterCurrentRow { break }
                 }
@@ -209,14 +233,11 @@ extension AppleMailFields {
         return result
     }
 
-    private static func cleanStoreAddress(_ row: String, phonePattern: String) -> String {
+    static func cleanStoreAddress(_ row: String) -> String {
+        let phonePattern = #"((?<!\d)(?:\+?852[\s-]?)?\d{4}[\s-]?\d{4}(?!\d))"#
         var value = row.replacingOccurrences(of: phonePattern, with: " ", options: .regularExpression)
-        // Apple may concatenate the address and product title in a single text node.
-        let productBoundary = #"(?i)\s+(?=(?:apple\s+watch|iphone|ipad|macbook|airpods|apple\s+pencil|homepod|apple\s+tv|magic\s+keyboard)\b)"#
-        value = value.replacingOccurrences(of: productBoundary, with: "\n", options: .regularExpression)
-        if value.contains("\n"), let addressPrefix = value.components(separatedBy: .newlines).first {
-            value = addressPrefix
-        }
+        // Apple HK may append the product title directly after the street address.
+        value = removingProductSuffix(from: value)
         if let boundary = value.range(of: #"(?i)\s+(?:數量|数量|qty|quantity)\b"#, options: .regularExpression) {
             value = String(value[..<boundary.lowerBound])
         }
