@@ -174,7 +174,7 @@ struct StorePhotoBanner: View {
                 .minimumScaleFactor(0.8)
                 .padding(.horizontal, 14)
                 .padding(.vertical, 8)
-                .liquidGlass(in: Capsule())
+                .background(.regularMaterial, in: Capsule())
                 .padding(14)
         }
         .clipShape(RoundedRectangle(cornerRadius: 24, style: .continuous))
