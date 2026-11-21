@@ -239,7 +239,7 @@ final class OutlookClient {
     private static func walletPassURL(in html: String) -> String? {
         // Parse each anchor independently. A broad dot-matching regex can cross </a>
         // and accidentally pair a nearby Maps URL with the later Wallet button.
-        let anchorPattern = #"(?is)<a\\b[^>]*\\bhref\\s*=\\s*["']([^"']+)["'][^>]*>(.*?)</a>"#
+        let anchorPattern = #"(?is)<a\b[^>]*\bhref\s*=\s*["']([^"']+)["'][^>]*>(.*?)</a>"#
         guard let regex = try? NSRegularExpression(pattern: anchorPattern) else { return nil }
         let range = NSRange(html.startIndex..., in: html)
         for match in regex.matches(in: html, range: range) {
