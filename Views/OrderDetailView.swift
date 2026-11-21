@@ -192,31 +192,35 @@ struct OrderDetailView: View {
             VStack(alignment: .leading, spacing: 12) {
                 Label("快捷操作", systemImage: "bolt")
                     .font(.headline)
-                HStack(spacing: 10) {
+                // Keep Liquid Glass controls separated to prevent neighboring shapes from merging.
+                VStack(spacing: 16) {
                     Button {
                         UIPasteboard.general.string = order.orderNumber
                         activityNote = "订单编号已复制"
                     } label: {
                         Label("复制订单号", systemImage: "doc.on.doc")
-                            .frame(maxWidth: .infinity)
+                            .frame(maxWidth: .infinity, minHeight: 44)
                     }
+                    .controlSize(.large)
                     .liquidGlassButton()
 
                     ShareLink(item: orderShareText) {
                         Label("分享订单", systemImage: "square.and.arrow.up")
-                            .frame(maxWidth: .infinity)
-                    }
-                    .liquidGlassButton()
-                }
-                if order.status == .readyForPickup {
-                    Button {
-                        confirmingPickedUp = true
-                    } label: {
-                        Label("我已完成取货", systemImage: "checkmark.seal")
-                            .frame(maxWidth: .infinity)
+                            .frame(maxWidth: .infinity, minHeight: 44)
                     }
                     .controlSize(.large)
-                    .liquidGlassProminentButton()
+                    .liquidGlassButton()
+
+                    if order.status == .readyForPickup {
+                        Button {
+                            confirmingPickedUp = true
+                        } label: {
+                            Label("我已完成取货", systemImage: "checkmark.seal")
+                                .frame(maxWidth: .infinity, minHeight: 44)
+                        }
+                        .controlSize(.large)
+                        .liquidGlassProminentButton()
+                    }
                 }
             }
         }
