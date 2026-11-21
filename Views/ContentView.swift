@@ -5,7 +5,6 @@ struct ContentView: View {
     @EnvironmentObject private var oauth: OutlookOAuth
     @State private var isSyncing = false
     @State private var errorMessage: String?
-    @State private var showingSettings = false
     @State private var showingAddOrder = false
     @State private var searchText = ""
     @State private var filter: OrderFilter = .all
@@ -46,8 +45,10 @@ struct ContentView: View {
             }) }
             .toolbar {
                 ToolbarItem(placement: .topBarLeading) {
-                    Button { showingSettings = true } label: { Image(systemName: "gearshape") }
-                        .accessibilityLabel("设置")
+                    NavigationLink { SettingsView(onSync: { await sync() }) } label: {
+                        Image(systemName: "gearshape")
+                    }
+                    .accessibilityLabel("设置")
                 }
                 ToolbarItem(placement: .topBarTrailing) {
                     Button { showingAddOrder = true } label: { Image(systemName: "plus") }
@@ -73,21 +74,18 @@ struct ContentView: View {
                     .padding(.horizontal, 18)
                     .padding(.vertical, 10)
                     .frame(maxWidth: 560)
-                    .background(.regularMaterial, in: RoundedRectangle(cornerRadius: TrackerTheme.Radius.prominent, style: .continuous))
+                    .liquidGlass(in: RoundedRectangle(cornerRadius: TrackerTheme.Radius.prominent, style: .continuous))
                     .frame(maxWidth: .infinity)
                     .padding(.horizontal, 16)
                     .padding(.bottom, 8)
                 }
             }
-            .sheet(isPresented: $showingSettings) { SettingsView(onSync: { await sync() }) }
             .sheet(isPresented: $showingAddOrder) { AddOrderView() }
             .alert("操作失败", isPresented: Binding(get: { errorMessage != nil }, set: { if !$0 { errorMessage = nil } })) {
                 Button("好", role: .cancel) { errorMessage = nil }
             } message: { Text(errorMessage ?? "") }
         }
         .task { BackgroundSync.shared.schedule() }
-        .preferredColorScheme(appearanceMode == "dark" ? .dark : appearanceMode == "light" ? .light : nil)
-        .animation(.easeInOut(duration: 0.2), value: appearanceMode)
     }
 
     // MARK: - List
