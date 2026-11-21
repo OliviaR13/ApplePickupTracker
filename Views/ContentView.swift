@@ -6,6 +6,7 @@ struct ContentView: View {
     @State private var isSyncing = false
     @State private var errorMessage: String?
     @State private var showingAddOrder = false
+    @State private var showingSettings = false
     @State private var searchText = ""
     @State private var filter: OrderFilter = .all
 
@@ -29,7 +30,8 @@ struct ContentView: View {
     private var syncFailed: Bool { store.syncMessage?.hasPrefix("同步失败") == true }
 
     var body: some View {
-        NavigationStack {
+        ZStack(alignment: .leading) {
+            NavigationStack {
             Group {
                 if store.orders.isEmpty {
                     emptyState
@@ -44,7 +46,7 @@ struct ContentView: View {
             }) }
             .toolbar {
                 ToolbarItem(placement: .topBarLeading) {
-                    NavigationLink { SettingsView(onSync: { await sync() }) } label: {
+                    Button { showingSettings = true } label: {
                         Image(systemName: "gearshape")
                     }
                     .accessibilityLabel("设置")
@@ -83,7 +85,16 @@ struct ContentView: View {
             .alert("操作失败", isPresented: Binding(get: { errorMessage != nil }, set: { if !$0 { errorMessage = nil } })) {
                 Button("好", role: .cancel) { errorMessage = nil }
             } message: { Text(errorMessage ?? "") }
+            if showingSettings {
+                NavigationStack {
+                    SettingsView(onSync: { await sync() }, onClose: { showingSettings = false })
+                }
+                .background(TrackerTheme.background.ignoresSafeArea())
+                .transition(.move(edge: .leading))
+                .zIndex(1)
+            }
         }
+        .animation(.spring(response: 0.38, dampingFraction: 0.9), value: showingSettings)
         .task { BackgroundSync.shared.schedule() }
     }
 
