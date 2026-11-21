@@ -9,6 +9,29 @@ final class NotificationManager {
         _ = try? await UNUserNotificationCenter.current().requestAuthorization(options: [.alert, .sound, .badge])
     }
 
+    func notifyAlert(_ alert: OrderAlert, order: PickupOrder) async {
+        let key = alert.id.hasPrefix("delay-") ? "notifications.delayed" : "notifications.exceptions"
+        let enabled = UserDefaults.standard.object(forKey: key) as? Bool ?? true
+        guard enabled else { return }
+        let content = UNMutableNotificationContent()
+        content.title = alert.title
+        content.body = "\(order.productName)：\(alert.detail)"
+        content.sound = .default
+        let request = UNNotificationRequest(identifier: "order-alert-\(alert.id)", content: content, trigger: nil)
+        try? await UNUserNotificationCenter.current().add(request)
+    }
+
+    func notifyCompleted(order: PickupOrder) async {
+        let enabled = UserDefaults.standard.object(forKey: "notifications.completed") as? Bool ?? true
+        guard enabled else { return }
+        let content = UNMutableNotificationContent()
+        content.title = "订单已自动完结"
+        content.body = "\(order.productName) 已超过设置的取货等待期限。"
+        content.sound = .default
+        let request = UNNotificationRequest(identifier: "order-completed-\(order.orderNumber)", content: content, trigger: nil)
+        try? await UNUserNotificationCenter.current().add(request)
+    }
+
     func notifyReady(order: PickupOrder) async {
         let enabled = UserDefaults.standard.object(forKey: "notifications.ready") as? Bool ?? true
         guard enabled else { return }
