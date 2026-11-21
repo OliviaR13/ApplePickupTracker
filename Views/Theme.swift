@@ -22,16 +22,20 @@ extension PickupStatus {
     }
 }
 
-/// A rounded glass plate with the standard card padding.
-struct GlassCard<Content: View>: View {
-    var cornerRadius: CGFloat = 20
+/// A content-layer card. Content surfaces use standard system colors, not Liquid Glass.
+struct ContentCard<Content: View>: View {
+    var cornerRadius: CGFloat = TrackerTheme.Radius.card
     @ViewBuilder var content: () -> Content
 
     var body: some View {
         content()
-            .padding(18)
+            .padding(TrackerTheme.Spacing.cardInset)
             .frame(maxWidth: .infinity, alignment: .leading)
-            .liquidGlass(in: RoundedRectangle(cornerRadius: cornerRadius, style: .continuous))
+            .background(TrackerTheme.card, in: RoundedRectangle(cornerRadius: cornerRadius, style: .continuous))
+            .overlay {
+                RoundedRectangle(cornerRadius: cornerRadius, style: .continuous)
+                    .strokeBorder(TrackerTheme.separator.opacity(0.45), lineWidth: 0.5)
+            }
     }
 }
 
@@ -50,11 +54,44 @@ struct StatusBadge: View {
 }
 
 
-/// Native iOS semantic surfaces and system accent colors.
+/// Semantic design tokens shared by every app screen.
 enum TrackerTheme {
-    // Use semantic UIKit colors so grouped surfaces and controls follow the
-    // active iOS appearance instead of maintaining a parallel custom palette.
+    // Surfaces
     static let background = Color(uiColor: .systemGroupedBackground)
     static let card = Color(uiColor: .secondarySystemGroupedBackground)
+    static let elevatedSurface = Color(uiColor: .systemBackground)
+    static let separator = Color(uiColor: .separator)
     static let accent = Color.accentColor
+
+    // Text roles. Prefer these semantic styles over fixed white/black values.
+    enum Text {
+        static let primary = Color.primary
+        static let secondary = Color.secondary
+        static let tertiary = Color(uiColor: .tertiaryLabel)
+    }
+
+    // Layout tokens
+    enum Spacing {
+        static let compact: CGFloat = 8
+        static let regular: CGFloat = 12
+        static let section: CGFloat = 18
+        static let cardInset: CGFloat = 18
+        static let screenInset: CGFloat = 16
+    }
+
+    enum Radius {
+        static let control: CGFloat = 12
+        static let card: CGFloat = 20
+        static let prominent: CGFloat = 24
+    }
+
+    // Typography uses system text styles, preserving Dynamic Type behavior.
+    enum TypeScale {
+        static let caption = Font.caption
+        static let footnote = Font.footnote
+        static let body = Font.body
+        static let headline = Font.headline
+        static let title = Font.title
+        static let largeTitle = Font.largeTitle
+    }
 }
