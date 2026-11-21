@@ -110,6 +110,16 @@ final class OrderStore: ObservableObject {
         return completedCount
     }
 
+    /// Records a user-confirmed pickup when Apple doesn't send a separate pickup email.
+    func markPickedUp(orderNumber: String, at date: Date = Date()) {
+        guard let index = orders.firstIndex(where: { $0.orderNumber == orderNumber }),
+              orders[index].status == .readyForPickup else { return }
+        orders[index].status = .pickedUp
+        orders[index].lastUpdated = date
+        orders[index].history.append(OrderEvent(status: .pickedUp, date: date, messageID: "manual"))
+        commit()
+    }
+
     /// Sorts newest-first and saves to disk.
     func commit() {
         orders.sort { $0.lastUpdated > $1.lastUpdated }
