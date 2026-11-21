@@ -38,7 +38,7 @@ struct PickupOrder: Codable, Identifiable, Hashable {
         if newStatus == .readyForPickup, readyForPickupAt == nil { readyForPickupAt = date }
         lastUpdated = date
         self.sourceMessageID = sourceMessageID
-        history.append(OrderEvent(status: newStatus, date: date))
+        history.append(OrderEvent(status: newStatus, date: date, messageID: sourceMessageID))
     }
 }
 
@@ -80,6 +80,8 @@ struct OrderEvent: Codable, Hashable, Identifiable {
     var id: String { "\(status.rawValue)-\(date.timeIntervalSince1970)" }
     let status: PickupStatus
     let date: Date
+    /// Microsoft Graph message ID for the original email that caused this status.
+    var messageID: String? = nil
 }
 
 enum PickupStatus: String, Codable, CaseIterable, Comparable {
