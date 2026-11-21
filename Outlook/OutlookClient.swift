@@ -246,7 +246,7 @@ final class OutlookClient {
     /// Extracts the actual pickup-map link from Apple's HTML email, rather than geocoding a store name.
     /// The ready-for-pickup email's maps.apple.com destination takes precedence over the generic retail page.
     private static func storeNavigationURL(in html: String) -> String? {
-        let anchorPattern = #"(?is)<a\\b[^>]*\\bhref\\s*=\\s*["']([^"']+)["'][^>]*>(.*?)</a>"#
+        let anchorPattern = #"(?is)<a\b[^>]*\bhref\s*=\s*["']([^"']+)["'][^>]*>(.*?)</a>"#
         guard let regex = try? NSRegularExpression(pattern: anchorPattern) else { return nil }
         let range = NSRange(html.startIndex..., in: html)
         var retailURL: String?
@@ -258,7 +258,7 @@ final class OutlookClient {
                 .replacingOccurrences(of: "&#38;", with: "&")
             let label = AppleMailFields.plain(String(html[bodyRange]))
                 .lowercased()
-                .replacingOccurrences(of: #"\\s+"#, with: " ", options: .regularExpression)
+                .replacingOccurrences(of: #"\s+"#, with: " ", options: .regularExpression)
             guard let url = URL(string: rawURL),
                   let host = url.host?.lowercased(),
                   url.scheme?.lowercased() == "https" || url.scheme?.lowercased() == "http" else { continue }
