@@ -40,6 +40,10 @@ final class SyncService {
         return min(overlap ?? earliestPending, earliestPending)
     }
 
+    func fetchOriginalMail(messageID: String) async throws -> OriginalMailMessage {
+        try await outlook.fetchOriginalMail(messageID: messageID)
+    }
+
     func sync() async throws {
         if let syncTask {
             try await syncTask.value
