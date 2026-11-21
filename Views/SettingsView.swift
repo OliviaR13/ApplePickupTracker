@@ -105,7 +105,7 @@ struct SettingsView: View {
             Toggle("自动完结取货订单", isOn: $autoCompleteEnabled)
             if autoCompleteEnabled {
                 Stepper(value: $autoCompleteDays, in: 3...30) {
-                    LabeledContent("备妥后等待", value: "\\(autoCompleteDays) 天")
+                    LabeledContent("备妥后等待", value: "\(autoCompleteDays) 天")
                 }
                 Text("从 Apple 发送「可以取货」邮件的时间开始计算。收到延期通知的订单不会自动完结。iOS 后台刷新时间由系统决定，设置的期限会在下次同步时检查。")
                     .font(.footnote).foregroundStyle(.secondary)
