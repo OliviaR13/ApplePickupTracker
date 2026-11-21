@@ -5,7 +5,6 @@ import UIKit
 struct SettingsView: View {
     @EnvironmentObject private var oauth: OutlookOAuth
     @EnvironmentObject private var store: OrderStore
-    @Environment(\.dismiss) private var dismiss
     let onSync: () async -> Void
     @State private var isWorking = false
     @State private var message: String?
@@ -30,53 +29,51 @@ struct SettingsView: View {
     }
 
     var body: some View {
-        NavigationStack {
-            Form {
-                outlookSection
-                Section("隐私与权限") {
-                    Label("邮件内容仅在此设备上处理", systemImage: "iphone")
-                    Label("订单数据保存在本机", systemImage: "lock.fill")
-                    Label("Microsoft Graph：Mail.Read 只读权限", systemImage: "envelope.badge")
-                }
-                appearanceSection
-                automationSection
-                notificationSection
-                securitySection
-                if extensionInstalled { liveActivitySection }
-                Section("同步") {
-                    LabeledContent("上次同步", value: store.lastSync?.formatted(date: .abbreviated, time: .shortened) ?? "从未同步")
-                    Text("iOS 会在系统资源允许时安排后台刷新，实际刷新时间由系统决定。").font(.footnote).foregroundStyle(.secondary)
-                }
-                Section {
-                    Button("清除订单数据", role: .destructive) { confirmingClear = true }
-                        .disabled(store.orders.isEmpty)
-                } header: {
-                    Text("数据")
-                } footer: {
-                    Text("只会删除本机保存的订单记录，不会影响 Outlook 邮箱里的邮件。")
-                }
-                Section("关于") {
-                    LabeledContent("版本", value: versionText)
-                }
+        Form {
+            outlookSection
+            Section("隐私与权限") {
+                Label("邮件内容仅在此设备上处理", systemImage: "iphone")
+                Label("订单数据保存在本机", systemImage: "lock.fill")
+                Label("Microsoft Graph：Mail.Read 只读权限", systemImage: "envelope.badge")
             }
-            .scrollContentBackground(.hidden)
-            .background(TrackerTheme.background)
-            .tint(TrackerTheme.accent)
-            .navigationTitle("设置").navigationBarTitleDisplayMode(.inline)
-            .task {
-                activitiesEnabled = ActivityAuthorizationInfo().areActivitiesEnabled
-                runningCount = LiveActivityManager().runningCount
+            appearanceSection
+            automationSection
+            notificationSection
+            securitySection
+            if extensionInstalled { liveActivitySection }
+            Section("同步") {
+                LabeledContent("上次同步", value: store.lastSync?.formatted(date: .abbreviated, time: .shortened) ?? "从未同步")
+                Text("iOS 会在系统资源允许时安排后台刷新，实际刷新时间由系统决定。").font(.footnote).foregroundStyle(.secondary)
             }
-            .toolbar { ToolbarItem(placement: .topBarTrailing) { Button("完成") { dismiss() } } }
-            .alert("Outlook", isPresented: Binding(get: { message != nil }, set: { if !$0 { message = nil } })) {
-                Button("好", role: .cancel) { message = nil }
-            } message: { Text(message ?? "") }
-            .confirmationDialog("清除所有已保存的订单？", isPresented: $confirmingClear, titleVisibility: .visible) {
-                Button("清除", role: .destructive) { Task { await clearData() } }
-                Button("取消", role: .cancel) {}
-            } message: {
-                Text("订单记录和锁定屏幕上的实时活动都会被移除，下次同步会重新扫描邮箱。")
+            Section {
+                Button("清除订单数据", role: .destructive) { confirmingClear = true }
+                    .disabled(store.orders.isEmpty)
+            } header: {
+                Text("数据")
+            } footer: {
+                Text("只会删除本机保存的订单记录，不会影响 Outlook 邮箱里的邮件。")
             }
+            Section("关于") {
+                LabeledContent("版本", value: versionText)
+            }
+        }
+        .scrollContentBackground(.hidden)
+        .background(TrackerTheme.background)
+        .tint(TrackerTheme.accent)
+        .navigationTitle("设置")
+        .navigationBarTitleDisplayMode(.large)
+        .task {
+            activitiesEnabled = ActivityAuthorizationInfo().areActivitiesEnabled
+            runningCount = LiveActivityManager().runningCount
+        }
+        .alert("Outlook", isPresented: Binding(get: { message != nil }, set: { if !$0 { message = nil } })) {
+            Button("好", role: .cancel) { message = nil }
+        } message: { Text(message ?? "") }
+        .confirmationDialog("清除所有已保存的订单？", isPresented: $confirmingClear, titleVisibility: .visible) {
+            Button("清除", role: .destructive) { Task { await clearData() } }
+            Button("取消", role: .cancel) {}
+        } message: {
+            Text("订单记录和锁定屏幕上的实时活动都会被移除，下次同步会重新扫描邮箱。")
         }
     }
 
