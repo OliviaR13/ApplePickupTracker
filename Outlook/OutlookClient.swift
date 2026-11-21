@@ -102,10 +102,11 @@ final class OutlookClient {
 
                 guard let order = Self.firstMatch(Self.orderRegex, in: content) else { continue }
                 let status = PickupStatus.detect(in: content)
-                guard status != .unknown else { continue }
                 let date = message.receivedDateTime.flatMap { value in
                     Self.isoPlain.date(from: value) ?? Self.isoFractional.date(from: value)
                 } ?? Date()
+                let alerts = OrderAlert.detect(in: content, date: date)
+                guard status != .unknown || !alerts.isEmpty else { continue }
                 let rawBody = message.body?.content ?? ""
                 let assets: (qr: String?, wallet: String?)
                 if status == .readyForPickup {
@@ -118,7 +119,7 @@ final class OutlookClient {
                                                pickupNote: AppleMailFields.pickupNote(from: content),
                                                metadata: AppleMailFields.orderMetadata(from: content),
                                                pickupQRCode: assets.qr, walletPassURL: assets.wallet,
-                                               alerts: OrderAlert.detect(in: content, date: date), status: status, messageID: message.id, date: date))
+                                               alerts: alerts, status: status, messageID: message.id, date: date))
             }
             nextURL = page.nextLink.flatMap(URL.init(string:))
         }
