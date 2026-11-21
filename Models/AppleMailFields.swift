@@ -91,9 +91,9 @@ enum AppleMailFields {
     }
 
     private static func isProductLine(_ line: String) -> Bool {
-        let lower = line.lowercased()
+        let lower = line.trimmingCharacters(in: .whitespacesAndNewlines).lowercased()
         let markers = ["apple watch", "iphone", "ipad", "macbook", "airpods", "apple pencil", "homepod", "apple tv", "magic keyboard"]
-        return markers.contains(where: { lower.contains($0) })
+        return markers.contains(where: { lower.hasPrefix($0) })
     }
 
     private static func looksLikeNamedStore(_ line: String) -> Bool {
