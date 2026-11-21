@@ -64,13 +64,13 @@ final class OrderStore: ObservableObject {
             }
             target = index
         } else {
-            orders.append(PickupOrder(orderNumber: orderNumber, productName: product, storeName: store, pickupNote: pickupNote,
+            orders.append(PickupOrder(orderNumber: orderNumber, productName: product, productImageURL: productImageURL,
+                                      storeName: store, pickupNote: pickupNote,
                                       quantity: metadata?.quantity, productAmount: metadata?.productAmount,
                                       subtotal: metadata?.subtotal, shippingFee: metadata?.shippingFee,
                                       totalAmount: metadata?.totalAmount, currencyCode: metadata?.currencyCode,
                                       storeAddress: metadata?.storeAddress, storePostalCode: metadata?.storePostalCode,
                                       storePhone: metadata?.storePhone,
-                                      productImageURL: productImageURL,
                                       pickupQRCode: pickupQRCode, walletPassURL: walletPassURL,
                                       status: status, lastUpdated: date, sourceMessageID: messageID,
                                       history: [OrderEvent(status: status, date: date, messageID: messageID)], alerts: alerts.isEmpty ? nil : alerts))
