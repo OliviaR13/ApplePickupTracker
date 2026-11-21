@@ -141,7 +141,7 @@ struct OrderDetailView: View {
     }
 
     private var hasStoreDetails: Bool {
-        order.storeAddress != nil || order.storePostalCode != nil || order.storePhone != nil
+        order.recognizedStoreName != nil || order.storeAddress != nil || order.storePostalCode != nil || order.storePhone != nil
     }
 
     private var storeCard: some View {
