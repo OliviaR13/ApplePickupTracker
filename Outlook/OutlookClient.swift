@@ -20,6 +20,23 @@ struct OutlookFetchResult {
     let appleSenderCount: Int
 }
 
+struct OriginalMailMessage {
+    let subject: String
+    let sender: String
+    let receivedAt: Date?
+    let body: String
+}
+
+private struct GraphOriginalMail: Decodable {
+    struct Email: Decodable { let address: String? }
+    struct Sender: Decodable { let emailAddress: Email? }
+    struct Body: Decodable { let content: String?; let contentType: String? }
+    let subject: String?
+    let receivedDateTime: String?
+    let from: Sender?
+    let body: Body?
+}
+
 private struct GraphMessagePage: Decodable {
     struct Message: Decodable {
         struct Email: Decodable { let address: String? }
@@ -127,6 +144,28 @@ final class OutlookClient {
                                   scannedCount: scanned, appleSenderCount: appleCount)
     }
 
+
+    /// Loads the original message associated with a timeline event.
+    func fetchOriginalMail(messageID: String) async throws -> OriginalMailMessage {
+        guard let encodedID = messageID.addingPercentEncoding(withAllowedCharacters: .urlPathAllowed),
+              let url = URL(string: "https://graph.microsoft.com/v1.0/me/messages/\(encodedID)?$select=subject,receivedDateTime,from,body") else {
+            throw OutlookError.tokenExchangeFailed
+        }
+        let token = try await oauth.validAccessToken()
+        var request = URLRequest(url: url)
+        request.setValue("Bearer \(token)", forHTTPHeaderField: "Authorization")
+        request.setValue("outlook.body-content-type=\"html\"", forHTTPHeaderField: "Prefer")
+        request.timeoutInterval = 25
+        let (data, response) = try await URLSession.shared.data(for: request)
+        try Self.validate(response, data: data)
+        let message = try JSONDecoder().decode(GraphOriginalMail.self, from: data)
+        let rawBody = message.body?.content ?? "（邮件正文为空）"
+        let body = message.body?.contentType?.lowercased() == "html" ? AppleMailFields.plain(rawBody) : rawBody
+        let date = message.receivedDateTime.flatMap { Self.isoPlain.date(from: $0) ?? Self.isoFractional.date(from: $0) }
+        return OriginalMailMessage(subject: message.subject ?? "Apple 订单邮件",
+                                   sender: message.from?.emailAddress?.address ?? "未知发件人",
+                                   receivedAt: date, body: body)
+    }
 
     /// Extracts the pickup QR and Apple Wallet link only from ready-for-pickup messages.
     /// Outlook may expose QR images as data URIs or as inline CID file attachments.
