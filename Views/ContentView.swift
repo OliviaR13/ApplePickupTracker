@@ -73,7 +73,7 @@ struct ContentView: View {
                     .padding(.horizontal, 18)
                     .padding(.vertical, 10)
                     .frame(maxWidth: 560)
-                    .liquidGlass(in: RoundedRectangle(cornerRadius: 22, style: .continuous))
+                    .background(.regularMaterial, in: RoundedRectangle(cornerRadius: 22, style: .continuous))
                     .frame(maxWidth: .infinity)
                     .padding(.horizontal, 16)
                     .padding(.bottom, 8)
