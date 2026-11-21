@@ -23,7 +23,7 @@ struct PickupOrder: Codable, Identifiable, Hashable {
     var lastUpdated: Date
     var sourceMessageID: String
     var history: [OrderEvent]
-    var alerts: [OrderAlert]?
+    var alerts: [OrderAlert]? = nil
 
     mutating func apply(status newStatus: PickupStatus, at date: Date, sourceMessageID: String) {
         guard date >= lastUpdated else { return }
