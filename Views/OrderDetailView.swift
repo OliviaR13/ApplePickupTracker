@@ -11,6 +11,8 @@ struct OrderDetailView: View {
     @State private var activityNote: String?
     @State private var activitiesDisabled = false
     @State private var confirmingRemove = false
+    @State private var showingQRCode = false
+    @State private var previousBrightness: CGFloat?
 
     private var order: PickupOrder { store.order(withNumber: initial.orderNumber) ?? initial }
 
@@ -46,7 +48,12 @@ struct OrderDetailView: View {
         .background(Color(uiColor: .systemGroupedBackground))
         .navigationTitle("订单详情")
         .navigationBarTitleDisplayMode(.inline)
-        .sensoryFeedback(.success, trigger: activityNote)
+.sensoryFeedback(.success, trigger: activityNote)
+        .fullScreenCover(isPresented: $showingQRCode, onDismiss: restoreBrightness) {
+            if let image = pickupQRCodeImage {
+                PickupQRCodeFullscreen(image: image, orderNumber: order.orderNumber)
+            }
+        }
         .toolbar {
             ToolbarItem(placement: .topBarTrailing) {
                 Menu {
@@ -149,15 +156,22 @@ struct OrderDetailView: View {
                 Label("到店取货凭证", systemImage: "qrcode")
                     .font(.headline)
                 if let image = pickupQRCodeImage {
-                    Image(uiImage: image)
-                        .resizable()
-                        .interpolation(.none)
-                        .scaledToFit()
-                        .frame(maxWidth: 240, maxHeight: 240)
-                        .padding(14)
-                        .background(Color.white, in: RoundedRectangle(cornerRadius: 16))
-                        .frame(maxWidth: .infinity)
-                        .accessibilityLabel("Apple Store 取货二维码")
+                    Button(action: presentQRCode) {
+                        Image(uiImage: image)
+                            .resizable()
+                            .interpolation(.none)
+                            .scaledToFit()
+                            .frame(maxWidth: 240, maxHeight: 240)
+                            .padding(14)
+                            .background(Color.white, in: RoundedRectangle(cornerRadius: 16))
+                            .frame(maxWidth: .infinity)
+                            .accessibilityLabel("放大查看 Apple Store 取货二维码")
+                    }
+                    .buttonStyle(.plain)
+                    Text("点击二维码放大并临时调高屏幕亮度。")
+                        .font(.footnote)
+                        .foregroundStyle(.secondary)
+                        .frame(maxWidth: .infinity, alignment: .center)
                     Text("请在门店出示此二维码完成取货。")
                         .font(.footnote)
                         .foregroundStyle(.secondary)
@@ -279,8 +293,44 @@ struct OrderDetailView: View {
             VStack(alignment: .leading, spacing: 14) {
                 Label("订单动态", systemImage: "clock.arrow.circlepath")
                     .font(.headline)
+                if let alerts = order.alerts, !alerts.isEmpty { alertTimeline(alerts) }
                 timeline
             }
+        }
+    }
+
+    private func alertTimeline(_ alerts: [OrderAlert]) -> some View {
+        VStack(alignment: .leading, spacing: 10) {
+            Label("订单异常与提醒", systemImage: "exclamationmark.triangle.fill")
+                .font(.subheadline.weight(.semibold))
+                .foregroundStyle(.orange)
+            ForEach(alerts.sorted { $0.date > $1.date }) { alert in
+                VStack(alignment: .leading, spacing: 4) {
+                    HStack {
+                        Text(alert.title).font(.subheadline.weight(.semibold))
+                        Spacer()
+                        Text(alert.date.formatted(date: .abbreviated, time: .shortened))
+                            .font(.caption2).foregroundStyle(.tertiary)
+                    }
+                    Text(alert.detail).font(.footnote).foregroundStyle(.secondary)
+                }
+                .padding(12)
+                .frame(maxWidth: .infinity, alignment: .leading)
+                .background(Color.orange.opacity(0.08), in: RoundedRectangle(cornerRadius: 14))
+            }
+        }
+    }
+
+    private func presentQRCode() {
+        previousBrightness = UIScreen.main.brightness
+        UIScreen.main.brightness = 1.0
+        showingQRCode = true
+    }
+
+    private func restoreBrightness() {
+        if let previousBrightness {
+            UIScreen.main.brightness = previousBrightness
+            self.previousBrightness = nil
         }
     }
 
@@ -367,5 +417,50 @@ struct OrderDetailView: View {
     private func openSettings() {
         guard let url = URL(string: UIApplication.openSettingsURLString) else { return }
         UIApplication.shared.open(url)
+    }
+}
+
+private struct PickupQRCodeFullscreen: View {
+    let image: UIImage
+    let orderNumber: String
+    @Environment(\.dismiss) private var dismiss
+
+    var body: some View {
+        ZStack {
+            Color.black.ignoresSafeArea()
+            VStack(spacing: 22) {
+                HStack {
+                    VStack(alignment: .leading, spacing: 4) {
+                        Text("Apple Store 取货凭证")
+                            .font(.headline).foregroundStyle(.white)
+                        Text(orderNumber).font(.caption.monospaced()).foregroundStyle(.white.opacity(0.65))
+                    }
+                    Spacer()
+                    Button { dismiss() } label: {
+                        Image(systemName: "xmark")
+                            .font(.headline)
+                            .foregroundStyle(.white)
+                            .padding(12)
+                            .background(.white.opacity(0.14), in: Circle())
+                    }
+                    .accessibilityLabel("关闭二维码")
+                }
+                Spacer(minLength: 12)
+                Image(uiImage: image)
+                    .resizable()
+                    .interpolation(.none)
+                    .scaledToFit()
+                    .padding(20)
+                    .background(.white, in: RoundedRectangle(cornerRadius: 22))
+                    .padding(.horizontal, 8)
+                    .accessibilityLabel("Apple Store 取货二维码")
+                Text("请将此二维码出示给 Apple Store 员工")
+                    .font(.subheadline)
+                    .foregroundStyle(.white.opacity(0.75))
+                Spacer(minLength: 12)
+            }
+            .padding(24)
+        }
+        .statusBarHidden()
     }
 }
