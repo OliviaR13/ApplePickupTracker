@@ -201,6 +201,9 @@ extension AppleMailFields {
         // Apple may concatenate the address and product title in a single text node.
         let productBoundary = #"(?i)\s+(?=(?:apple\s+watch|iphone|ipad|macbook|airpods|apple\s+pencil|homepod|apple\s+tv|magic\s+keyboard)\b)"#
         value = value.replacingOccurrences(of: productBoundary, with: "\n", options: .regularExpression)
+        if value.contains("\n"), let addressPrefix = value.components(separatedBy: .newlines).first {
+            value = addressPrefix
+        }
         if let boundary = value.range(of: #"(?i)\s+(?:數量|数量|qty|quantity)\b"#, options: .regularExpression) {
             value = String(value[..<boundary.lowerBound])
         }
