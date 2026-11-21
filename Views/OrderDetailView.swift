@@ -23,6 +23,7 @@ struct OrderDetailView: View {
                         statusHero
                         itemCard
                         detailsCard
+                        if hasPickupAssets { pickupPassCard }
                         if hasFinancialDetails { financialCard }
                         if hasStoreDetails { storeCard }
                         timelineCard
@@ -116,6 +117,59 @@ struct OrderDetailView: View {
                 }
                 if let amount = order.productAmount {
                     moneyRow("商品金额", amount, emphasized: true)
+                }
+            }
+        }
+    }
+
+
+    private var pickupQRCodeImage: UIImage? {
+        guard let encoded = order.pickupQRCode,
+              let data = Data(base64Encoded: encoded),
+              let image = UIImage(data: data) else { return nil }
+        return image
+    }
+
+    private var walletPassDestination: URL? {
+        guard let raw = order.walletPassURL,
+              let url = URL(string: raw),
+              url.scheme?.lowercased() == "https",
+              let host = url.host?.lowercased(),
+              host == "apple.com" || host.hasSuffix(".apple.com") else { return nil }
+        return url
+    }
+
+    private var hasPickupAssets: Bool {
+        pickupQRCodeImage != nil || walletPassDestination != nil
+    }
+
+    private var pickupPassCard: some View {
+        GlassCard {
+            VStack(alignment: .leading, spacing: 14) {
+                Label("到店取货凭证", systemImage: "qrcode")
+                    .font(.headline)
+                if let image = pickupQRCodeImage {
+                    Image(uiImage: image)
+                        .resizable()
+                        .interpolation(.none)
+                        .scaledToFit()
+                        .frame(maxWidth: 240, maxHeight: 240)
+                        .padding(14)
+                        .background(Color.white, in: RoundedRectangle(cornerRadius: 16))
+                        .frame(maxWidth: .infinity)
+                        .accessibilityLabel("Apple Store 取货二维码")
+                    Text("请在门店出示此二维码完成取货。")
+                        .font(.footnote)
+                        .foregroundStyle(.secondary)
+                        .frame(maxWidth: .infinity, alignment: .center)
+                }
+                if let destination = walletPassDestination {
+                    Link(destination: destination) {
+                        Label("添加到 Apple Wallet", systemImage: "wallet.pass")
+                            .frame(maxWidth: .infinity)
+                    }
+                    .controlSize(.large)
+                    .liquidGlassButton()
                 }
             }
         }
