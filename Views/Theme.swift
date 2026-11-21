@@ -50,7 +50,7 @@ struct StatusBadge: View {
 }
 
 
-/// Warm neutral surfaces and a restrained teal accent, adapted from MyLoon's visual system.
+/// Native iOS semantic surfaces and system accent colors.
 enum TrackerTheme {
     // Use semantic UIKit colors so grouped surfaces and controls follow the
     // active iOS appearance instead of maintaining a parallel custom palette.
