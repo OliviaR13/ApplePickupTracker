@@ -73,7 +73,7 @@ final class SyncService {
             guard let order = store.order(withNumber: message.orderNumber) else { continue }
             for alert in message.alerts { await NotificationManager.shared.notifyAlert(alert, order: order) }
         }
-        let previouslyCompleted = Set(store.orders.filter { $0.status == .completed }.map(\\.orderNumber))
+        let previouslyCompleted = Set(store.orders.filter { $0.status == .completed }.map(\.orderNumber))
         let autoCompletedCount = store.completeExpiredPickupOrders()
         if autoCompletedCount > 0 {
             for order in store.orders where order.status == .completed && !previouslyCompleted.contains(order.orderNumber) {
