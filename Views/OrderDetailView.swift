@@ -1,5 +1,6 @@
 import SwiftUI
 import UIKit
+import LocalAuthentication
 
 struct OrderDetailView: View {
     @EnvironmentObject private var store: OrderStore
@@ -7,6 +8,7 @@ struct OrderDetailView: View {
     @Environment(\.scenePhase) private var scenePhase
     /// Snapshot used to open the screen; the live copy is looked up in the store so it refreshes after a sync.
     let initial: PickupOrder
+    let loadOriginalMail: (String) async throws -> OriginalMailMessage
 
     @State private var liveActivity = LiveActivityManager()
     @State private var activityNote: String?
@@ -14,6 +16,10 @@ struct OrderDetailView: View {
     @State private var confirmingRemove = false
     @State private var showingQRCode = false
     @State private var previousBrightness: CGFloat?
+    @State private var originalMail: OriginalMailMessage?
+    @State private var showingOriginalMail = false
+    @State private var originalMailError: String?
+    @AppStorage("security.protectQRCodeWithBiometrics") private var protectQRCodeWithBiometrics = true
 
     private var order: PickupOrder { store.order(withNumber: initial.orderNumber) ?? initial }
 
@@ -157,7 +163,7 @@ struct OrderDetailView: View {
                 Label("到店取货凭证", systemImage: "qrcode")
                     .font(.headline)
                 if let image = pickupQRCodeImage {
-                    Button(action: presentQRCode) {
+                    Button { Task { await presentQRCode() } } label: {
                         Image(uiImage: image)
                             .resizable()
                             .interpolation(.none)
@@ -322,7 +328,19 @@ struct OrderDetailView: View {
         }
     }
 
-    private func presentQRCode() {
+    private func presentQRCode() async {
+        if protectQRCodeWithBiometrics {
+            let context = LAContext()
+            context.localizedCancelTitle = "取消"
+            do {
+                var error: NSError?
+                guard context.canEvaluatePolicy(.deviceOwnerAuthentication, error: &error) else {
+                    originalMailError = error?.localizedDescription ?? "此设备尚未设置 Face ID 或设备密码。"
+                    return
+                }
+                _ = try await context.evaluatePolicy(.deviceOwnerAuthentication, localizedReason: "验证身份后查看 Apple Store 取货二维码")
+            } catch { originalMailError = error.localizedDescription; return }
+        }
         previousBrightness = UIScreen.main.brightness
         UIScreen.main.brightness = 1.0
         showingQRCode = true
