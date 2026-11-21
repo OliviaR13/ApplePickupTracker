@@ -19,6 +19,8 @@ struct PickupOrder: Codable, Identifiable, Hashable {
     var pickupQRCode: String?
     /// Validated HTTPS Apple Wallet pass URL from the same message.
     var walletPassURL: String?
+    /// Receipt time of Apple's ready-for-pickup email; used for automatic completion.
+    var readyForPickupAt: Date? = nil
     var status: PickupStatus
     var lastUpdated: Date
     var sourceMessageID: String
@@ -33,6 +35,7 @@ struct PickupOrder: Codable, Identifiable, Hashable {
             return
         }
         status = newStatus
+        if newStatus == .readyForPickup, readyForPickupAt == nil { readyForPickupAt = date }
         lastUpdated = date
         self.sourceMessageID = sourceMessageID
         history.append(OrderEvent(status: newStatus, date: date))
@@ -80,7 +83,7 @@ struct OrderEvent: Codable, Hashable, Identifiable {
 }
 
 enum PickupStatus: String, Codable, CaseIterable, Comparable {
-    case ordered, processing, shippingToStore, readyForPickup, pickedUp, cancelled, unknown
+    case ordered, processing, shippingToStore, readyForPickup, pickedUp, completed, cancelled, unknown
 
     var title: String {
         switch self {
@@ -89,6 +92,7 @@ enum PickupStatus: String, Codable, CaseIterable, Comparable {
         case .shippingToStore: "运送至门店"
         case .readyForPickup: "可以取货"
         case .pickedUp: "已取货"
+        case .completed: "已完结"
         case .cancelled: "已取消"
         case .unknown: "状态暂不可用"
         }
@@ -101,6 +105,7 @@ enum PickupStatus: String, Codable, CaseIterable, Comparable {
         case .shippingToStore: "订单正在运送至门店。"
         case .readyForPickup: "订单已备妥，请携带有效身份证件前往门店取货。"
         case .pickedUp: "此订单已取货。"
+        case .completed: "已超过取货通知 7 天，且期间没有收到延期通知，订单已自动完结。"
         case .cancelled: "此订单已取消。"
         case .unknown: "请查看最新的 Apple 邮件了解详情。"
         }
@@ -113,6 +118,7 @@ enum PickupStatus: String, Codable, CaseIterable, Comparable {
         case .shippingToStore: "shippingbox"
         case .readyForPickup: "checkmark.circle.fill"
         case .pickedUp: "bag.fill"
+        case .completed: "checkmark.seal.fill"
         case .cancelled: "xmark.circle"
         case .unknown: "questionmark.circle"
         }
@@ -124,13 +130,13 @@ enum PickupStatus: String, Codable, CaseIterable, Comparable {
         case .processing: 0.35
         case .shippingToStore: 0.65
         case .readyForPickup: 0.88
-        case .pickedUp: 1
+        case .pickedUp, .completed: 1
         case .cancelled, .unknown: 0
         }
     }
 
     /// True once the order needs no more tracking.
-    var isFinished: Bool { self == .pickedUp || self == .cancelled }
+    var isFinished: Bool { self == .pickedUp || self == .completed || self == .cancelled }
 
     static func < (lhs: PickupStatus, rhs: PickupStatus) -> Bool {
         lhs.progress < rhs.progress
