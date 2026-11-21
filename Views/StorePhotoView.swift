@@ -32,6 +32,57 @@ enum StoreImageLoader {
     }
 }
 
+struct ProductThumbnailView: View {
+    let imageURL: String?
+    var size: CGFloat = 58
+    var cornerRadius: CGFloat = 14
+
+    @State private var image: UIImage?
+    @State private var resolved = false
+
+    private var productURL: URL? {
+        guard let imageURL, let url = URL(string: imageURL),
+              url.scheme?.lowercased() == "https",
+              let host = url.host?.lowercased(), host.hasSuffix("apple.com"),
+              url.path.contains("/is/") else { return nil }
+        return url
+    }
+
+    var body: some View {
+        ZStack {
+            Color(uiColor: .secondarySystemFill)
+            if let image {
+                Image(uiImage: image)
+                    .resizable()
+                    .scaledToFit()
+                    .padding(3)
+                    .transition(.opacity)
+            } else {
+                Image(systemName: resolved ? "shippingbox" : "photo")
+                    .font(.title3)
+                    .foregroundStyle(.secondary)
+                    .symbolRenderingMode(.hierarchical)
+            }
+        }
+        .frame(width: size, height: size)
+        .clipShape(RoundedRectangle(cornerRadius: cornerRadius, style: .continuous))
+        .overlay {
+            RoundedRectangle(cornerRadius: cornerRadius, style: .continuous)
+                .strokeBorder(Color.primary.opacity(0.07), lineWidth: 0.5)
+        }
+        .accessibilityLabel(image == nil ? "商品图片暂不可用" : "订单商品图片")
+        .task(id: imageURL) {
+            resolved = false
+            image = nil
+            guard let url = productURL else { resolved = true; return }
+            let loaded = await StoreImageLoader.image(for: url)
+            guard !Task.isCancelled else { return }
+            withAnimation(.easeOut(duration: 0.2)) { image = loaded }
+            resolved = true
+        }
+    }
+}
+
 struct StorePhotoView: View {
     let storeName: String?
     var height: CGFloat = 56
