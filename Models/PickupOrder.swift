@@ -111,7 +111,7 @@ enum PickupStatus: String, Codable, CaseIterable, Comparable {
         case .shippingToStore: "订单正在运送至门店。"
         case .readyForPickup: "订单已备妥，请携带有效身份证件前往门店取货。"
         case .pickedUp: "此订单已取货。"
-        case .completed: "已超过取货通知 7 天，且期间没有收到延期通知，订单已自动完结。"
+        case .completed: "已超过设置的取货等待期限，且期间没有收到延期通知，订单已自动完结。"
         case .cancelled: "此订单已取消。"
         case .unknown: "请查看最新的 Apple 邮件了解详情。"
         }
