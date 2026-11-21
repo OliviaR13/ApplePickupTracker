@@ -3,6 +3,7 @@ import Foundation
 struct ParsedPickupMail {
     let orderNumber: String
     let productName: String
+    let productImageURL: String?
     let storeName: String
     let pickupNote: String?
     let metadata: AppleOrderMetadata
@@ -135,6 +136,7 @@ final class OutlookClient {
                     assets = (nil, nil)
                 }
                 parsed.append(ParsedPickupMail(orderNumber: order, productName: Self.productName(from: content),
+                                               productImageURL: Self.productImageURL(from: rawBody),
                                                storeName: AppleMailFields.storeName(from: content),
                                                pickupNote: AppleMailFields.pickupNote(from: content),
                                                metadata: AppleMailFields.orderMetadata(from: content),
@@ -292,6 +294,27 @@ final class OutlookClient {
             || value.contains("send to:") || value.contains("gift card details")
             || value.contains("电子邮件发送") || value.contains("以电子邮件发送")
         return hasGiftCard && isEmailDelivery
+    }
+
+    /// Returns the first real Apple product image in the order's HTML body.
+    /// Tracking pixels, logos and decorative email assets are ignored.
+    private static func productImageURL(from html: String) -> String? {
+        guard let imageRegex = try? NSRegularExpression(pattern: #"(?is)<img\\b[^>]*>"#),
+              let sourceRegex = try? NSRegularExpression(pattern: #"(?i)\\bsrc\\s*=\\s*[\\"']([^\\"']+)[\\"']"#) else { return nil }
+        let fullRange = NSRange(html.startIndex..., in: html)
+        for image in imageRegex.matches(in: html, range: fullRange) {
+            guard let tagRange = Range(image.range, in: html) else { continue }
+            let tag = String(html[tagRange])
+            let tagRangeNS = NSRange(tag.startIndex..., in: tag)
+            guard let match = sourceRegex.firstMatch(in: tag, range: tagRangeNS),
+                  let valueRange = Range(match.range(at: 1), in: tag) else { continue }
+            let raw = String(tag[valueRange]).replacingOccurrences(of: "&amp;", with: "&")
+            guard let url = URL(string: raw), url.scheme?.lowercased() == "https",
+                  let host = url.host?.lowercased(), host.hasSuffix("apple.com"),
+                  url.path.contains("/is/") else { continue }
+            return url.absoluteString
+        }
+        return nil
     }
 
     private static func productName(from text: String) -> String {
