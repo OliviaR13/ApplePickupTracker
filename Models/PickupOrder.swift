@@ -23,6 +23,7 @@ struct PickupOrder: Codable, Identifiable, Hashable {
     var lastUpdated: Date
     var sourceMessageID: String
     var history: [OrderEvent]
+    var alerts: [OrderAlert]?
 
     mutating func apply(status newStatus: PickupStatus, at date: Date, sourceMessageID: String) {
         guard date >= lastUpdated else { return }
@@ -35,6 +36,40 @@ struct PickupOrder: Codable, Identifiable, Hashable {
         lastUpdated = date
         self.sourceMessageID = sourceMessageID
         history.append(OrderEvent(status: newStatus, date: date))
+    }
+}
+
+struct OrderAlert: Codable, Hashable, Identifiable {
+    let id: String
+    let title: String
+    let detail: String
+    let date: Date
+
+    static func detect(in text: String, date: Date) -> [OrderAlert] {
+        let value = text.lowercased()
+        var found: [OrderAlert] = []
+        func add(_ id: String, _ title: String, _ detail: String) {
+            guard !found.contains(where: { $0.id == id }) else { return }
+            found.append(OrderAlert(id: id, title: title, detail: detail, date: date))
+        }
+        if ["order delayed", "delivery delayed", "pickup delayed", "delay in your order",
+            "订单延期", "取货延期", "配送延迟", "发货延迟", "延迟通知", "延期通知",
+            "延後取貨", "取貨延遲", "配送延誤"].contains(where: { value.contains($0) }) {
+            add("delay", "订单延期", "Apple 邮件提到了延期或延迟，请查看原邮件确认新的预计时间。")
+        }
+        if ["refund issued", "your refund", "refund has been", "退款已", "已退款",
+            "已退還", "退款通知", "退回款項"].contains(where: { value.contains($0) }) {
+            add("refund", "退款通知", "邮件包含退款信息，请核对退款金额及原支付方式。")
+        }
+        if ["payment issue", "payment failed", "unable to process payment",
+            "付款失败", "付款未成功", "付款問題"].contains(where: { value.contains($0) }) {
+            add("payment", "付款异常", "邮件提示付款可能未成功，请检查订单和支付状态。")
+        }
+        if ["action required", "additional information required", "需要采取行动",
+            "需要提供资料", "需要補充資料", "请更新付款", "請更新付款"].contains(where: { value.contains($0) }) {
+            add("action", "需要处理", "Apple 邮件要求你补充信息或执行操作，请尽快查看原邮件。")
+        }
+        return found
     }
 }
 
