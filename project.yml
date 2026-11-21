@@ -45,6 +45,7 @@ targets:
           - com.example.ApplePickupTracker.refresh
         NSSupportsLiveActivities: true
         NSUserNotificationUsageDescription: 当 Apple Store 订单可以取货时通知你。
+        NSFaceIDUsageDescription: 使用 Face ID 验证身份后展示 Apple Store 取货二维码。
         UILaunchStoryboardName: LaunchScreen
         UILaunchScreen:
           UIImageRespectsSafeAreaInsets: false
