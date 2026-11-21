@@ -11,6 +11,7 @@ extension PickupStatus {
         case .cancelled: .red
         case .ordered: .indigo
         case .pickedUp: .teal
+        case .completed: .green
         case .unknown: .gray
         }
     }
