@@ -8,7 +8,6 @@ struct ContentView: View {
     @State private var showingAddOrder = false
     @State private var searchText = ""
     @State private var filter: OrderFilter = .all
-    @AppStorage("appearance.mode") private var appearanceMode = "system"
 
     private let syncService: SyncService
     init(syncService: SyncService) { self.syncService = syncService }
