@@ -40,7 +40,21 @@ actor AppleStoreDirectory {
 
     func store(matching storeName: String) async -> AppleStore? {
         await ensureLoaded()
-        return Self.match(storeName, in: stores)
+        if let match = Self.match(storeName, in: stores) { return match }
+        // Apple's Shenzhen MixC branch has a stable retail ID (R761). Keep this
+        // explicit alias so a localized order name still resolves if Apple's
+        // store-list page changes its embedded JSON structure.
+        return Self.shenzhenMixCStore(matching: storeName)
+    }
+
+    private static func shenzhenMixCStore(matching storeName: String) -> AppleStore? {
+        let query = normalize(storeName)
+        let isShenzhenMixC = query.contains("深圳万象城")
+            || query.contains("shenzhenmixc")
+            || query.contains("mixcshenzhen")
+            || (query.contains("shenzhen") && query.contains("mixc"))
+        guard isShenzhenMixC, let imageURL = AppleStore.imageURL(storeID: "R761") else { return nil }
+        return AppleStore(id: "R761", name: "Apple MixC Shenzhen", city: "Shenzhen", imageURL: imageURL)
     }
 
     private func ensureLoaded() async {
