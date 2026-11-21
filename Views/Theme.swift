@@ -22,7 +22,7 @@ extension PickupStatus {
     }
 }
 
-/// A translucent card that uses native Liquid Glass on iOS 26 and material fallback on older systems.
+/// A content card using the system grouped surface so its colors adapt to light and dark appearance.
 struct ContentCard<Content: View>: View {
     var cornerRadius: CGFloat = TrackerTheme.Radius.card
     @ViewBuilder var content: () -> Content
