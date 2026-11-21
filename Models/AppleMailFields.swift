@@ -36,7 +36,7 @@ enum AppleMailFields {
         if let range = value.range(of: productBoundary, options: .regularExpression) {
             value = String(value[..<range.lowerBound])
         }
-        let suffixBoundary = #"(?i)\\s+(?:數量|数量|qty|quantity)\\s*[:：]?\\s*\\d+.*$"#
+        let suffixBoundary = #"(?i)\s+(?:數量|数量|qty|quantity)\s*[:：]?\s*\d+.*$"#
         value = value.replacingOccurrences(of: suffixBoundary, with: "", options: .regularExpression)
         return value.trimmingCharacters(in: .whitespacesAndNewlines.union(CharacterSet(charactersIn: "；;|›»·")))
     }
