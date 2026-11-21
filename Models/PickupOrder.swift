@@ -4,6 +4,8 @@ struct PickupOrder: Codable, Identifiable, Hashable {
     var id: String { orderNumber }
     let orderNumber: String
     var productName: String
+    /// Apple CDN image URL extracted from the product row in the order email.
+    var productImageURL: String? = nil
     var storeName: String
     var pickupNote: String?
     var quantity: Int?
