@@ -6,6 +6,15 @@ struct PickupOrder: Codable, Identifiable, Hashable {
     var productName: String
     var storeName: String
     var pickupNote: String?
+    var quantity: Int?
+    var productAmount: Decimal?
+    var subtotal: Decimal?
+    var shippingFee: Decimal?
+    var totalAmount: Decimal?
+    var currencyCode: String?
+    var storeAddress: String?
+    var storePostalCode: String?
+    var storePhone: String?
     var status: PickupStatus
     var lastUpdated: Date
     var sourceMessageID: String
