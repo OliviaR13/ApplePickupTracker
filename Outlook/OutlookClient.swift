@@ -25,6 +25,9 @@ struct OriginalMailMessage {
     let sender: String
     let receivedAt: Date?
     let body: String
+    let contentType: String
+
+    var isHTML: Bool { contentType.lowercased() == "html" }
 }
 
 private struct GraphOriginalMail: Decodable {
@@ -160,11 +163,11 @@ final class OutlookClient {
         try Self.validate(response, data: data)
         let message = try JSONDecoder().decode(GraphOriginalMail.self, from: data)
         let rawBody = message.body?.content ?? "（邮件正文为空）"
-        let body = message.body?.contentType?.lowercased() == "html" ? AppleMailFields.plain(rawBody) : rawBody
+        let contentType = message.body?.contentType ?? "text"
         let date = message.receivedDateTime.flatMap { Self.isoPlain.date(from: $0) ?? Self.isoFractional.date(from: $0) }
         return OriginalMailMessage(subject: message.subject ?? "Apple 订单邮件",
                                    sender: message.from?.emailAddress?.address ?? "未知发件人",
-                                   receivedAt: date, body: body)
+                                   receivedAt: date, body: rawBody, contentType: contentType)
     }
 
     /// Extracts the pickup QR and Apple Wallet link only from ready-for-pickup messages.
