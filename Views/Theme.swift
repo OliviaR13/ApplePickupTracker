@@ -22,7 +22,7 @@ extension PickupStatus {
     }
 }
 
-/// A content-layer card. Content surfaces use standard system colors, not Liquid Glass.
+/// A translucent card that uses native Liquid Glass on iOS 26 and material fallback on older systems.
 struct ContentCard<Content: View>: View {
     var cornerRadius: CGFloat = TrackerTheme.Radius.card
     @ViewBuilder var content: () -> Content
@@ -31,11 +31,7 @@ struct ContentCard<Content: View>: View {
         content()
             .padding(TrackerTheme.Spacing.cardInset)
             .frame(maxWidth: .infinity, alignment: .leading)
-            .background(TrackerTheme.card, in: RoundedRectangle(cornerRadius: cornerRadius, style: .continuous))
-            .overlay {
-                RoundedRectangle(cornerRadius: cornerRadius, style: .continuous)
-                    .strokeBorder(TrackerTheme.separator.opacity(0.45), lineWidth: 0.5)
-            }
+            .liquidGlass(in: RoundedRectangle(cornerRadius: cornerRadius, style: .continuous))
     }
 }
 
