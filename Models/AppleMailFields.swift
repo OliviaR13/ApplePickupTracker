@@ -32,7 +32,7 @@ enum AppleMailFields {
     /// Applied at display time as well as parsing time so previously saved orders are repaired.
     static func cleanStoreName(_ raw: String) -> String {
         var value = raw.trimmingCharacters(in: .whitespacesAndNewlines)
-        let productBoundary = #"(?i)\\s+(?=(?:apple\\s+watch|iphone|ipad|macbook|airpods|apple\\s+pencil|homepod|apple\\s+tv|magic\\s+keyboard)\\b)"#
+        let productBoundary = #"(?i)\s+(?=(?:apple\s+watch|iphone|ipad|macbook|airpods|apple\s+pencil|homepod|apple\s+tv|magic\s+keyboard)\b)"#
         if let range = value.range(of: productBoundary, options: .regularExpression) {
             value = String(value[..<range.lowerBound])
         }
