@@ -12,7 +12,7 @@ final class SyncService {
     }
 
     /// Bump when the mail parser changes so the next sync re-scans the full window.
-    private static let parserVersion = 5
+    private static let parserVersion = 6
     private static let lastScanKey = "outlook.lastScanDate"
     private static let parserVersionKey = "outlook.parserVersion"
 
@@ -60,6 +60,7 @@ final class SyncService {
                                            persist: false)
             if becameReady { newlyReadyOrderNumbers.insert(message.orderNumber) }
         }
+        let autoCompletedCount = store.completeExpiredPickupOrders()
         if !result.messages.isEmpty { store.commit() }
         await activity.reconcile(with: store.orders)
 
@@ -76,7 +77,7 @@ final class SyncService {
         if result.messages.isEmpty {
             summary = "已连接 Outlook；检查了 \(result.scannedCount) 封邮件，其中 \(result.appleSenderCount) 封来自 Apple，但没有识别到取货订单。"
         } else {
-            summary = "同步完成：扫描 \(result.scannedCount) 封邮件，识别到 \(result.messages.count) 条订单状态。"
+            summary = "同步完成：扫描 \(result.scannedCount) 封邮件，识别到 \(result.messages.count) 条订单状态。" + (autoCompletedCount > 0 ? " 自动完结 \(autoCompletedCount) 笔订单。" : "")
         }
         store.setSyncResult(summary)
         UserDefaults.standard.set(scanStartedAt, forKey: Self.lastScanKey)
