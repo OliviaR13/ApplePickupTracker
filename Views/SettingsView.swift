@@ -13,6 +13,13 @@ struct SettingsView: View {
     @State private var confirmingClear = false
     @State private var runningCount = 0
     @State private var restartNote: String?
+    @AppStorage("orders.autoCompleteEnabled") private var autoCompleteEnabled = true
+    @AppStorage("orders.autoCompleteDays") private var autoCompleteDays = 7
+    @AppStorage("notifications.ready") private var notifyReady = true
+    @AppStorage("notifications.completed") private var notifyCompleted = true
+    @AppStorage("notifications.delayed") private var notifyDelayed = true
+    @AppStorage("notifications.exceptions") private var notifyExceptions = true
+    @AppStorage("security.protectQRCodeWithBiometrics") private var protectQRCodeWithBiometrics = true
 
     private var versionText: String {
         let info = Bundle.main.infoDictionary
@@ -30,6 +37,9 @@ struct SettingsView: View {
                     Label("订单数据保存在本机", systemImage: "lock.fill")
                     Label("Microsoft Graph：Mail.Read 只读权限", systemImage: "envelope.badge")
                 }
+                automationSection
+                notificationSection
+                securitySection
                 liveActivitySection
                 Section("同步") {
                     LabeledContent("上次同步", value: store.lastSync?.formatted(date: .abbreviated, time: .shortened) ?? "从未同步")
@@ -88,6 +98,37 @@ struct SettingsView: View {
                 .disabled(isWorking)
             }
         }
+    }
+
+    private var automationSection: some View {
+        Section {
+            Toggle("自动完结取货订单", isOn: $autoCompleteEnabled)
+            if autoCompleteEnabled {
+                Stepper(value: $autoCompleteDays, in: 3...30) {
+                    LabeledContent("备妥后等待", value: "\\(autoCompleteDays) 天")
+                }
+                Text("从 Apple 发送「可以取货」邮件的时间开始计算。收到延期通知的订单不会自动完结。iOS 后台刷新时间由系统决定，设置的期限会在下次同步时检查。")
+                    .font(.footnote).foregroundStyle(.secondary)
+            }
+        } header: { Text("订单自动化") }
+    }
+
+    private var securitySection: some View {
+        Section {
+            Toggle("取货二维码使用 Face ID 保护", isOn: $protectQRCodeWithBiometrics)
+            Text("验证失败时可使用设备密码。关闭后，点击二维码即可直接展示。")
+                .font(.footnote).foregroundStyle(.secondary)
+        } header: { Text("隐私与安全") }
+    }
+
+    private var notificationSection: some View {
+        Section {
+            Toggle("备妥取货提醒", isOn: $notifyReady)
+            Toggle("延期提醒", isOn: $notifyDelayed)
+            Toggle("订单异常提醒", isOn: $notifyExceptions)
+            Toggle("自动完结提醒", isOn: $notifyCompleted)
+        } header: { Text("通知偏好") }
+        footer: { Text("还需要在 iOS 系统设置中允许本 App 发送通知。") }
     }
 
     private var liveActivitySection: some View {
