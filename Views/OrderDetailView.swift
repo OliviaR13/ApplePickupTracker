@@ -58,16 +58,32 @@ struct OrderDetailView: View {
 .sensoryFeedback(.success, trigger: activityNote)
         .sheet(isPresented: $showingOriginalMail) {
             NavigationStack {
-                ScrollView {
-                    VStack(alignment: .leading, spacing: 12) {
-                        Text(originalMail?.sender ?? "").font(.footnote).foregroundStyle(.secondary)
-                        if let date = originalMail?.receivedAt { Text(date.formatted(date: .long, time: .shortened)).font(.caption).foregroundStyle(.tertiary) }
-                        Divider()
-                        Text(originalMail?.body ?? "正在加载邮件原文…").textSelection(.enabled).frame(maxWidth: .infinity, alignment: .leading)
-                    }.padding()
+                VStack(alignment: .leading, spacing: 10) {
+                    VStack(alignment: .leading, spacing: 4) {
+                        Text(originalMail?.sender ?? "正在从 Outlook 加载邮件…")
+                            .font(.footnote)
+                            .foregroundStyle(.secondary)
+                            .textSelection(.enabled)
+                        if let date = originalMail?.receivedAt {
+                            Text(date.formatted(date: .long, time: .shortened))
+                                .font(.caption)
+                                .foregroundStyle(.tertiary)
+                        }
+                    }
+                    .padding(.horizontal, 16)
+                    .padding(.top, 12)
+                    Divider()
+                    if let mail = originalMail {
+                        OriginalMailBodyView(content: mail.body, isHTML: mail.isHTML)
+                            .frame(maxWidth: .infinity, maxHeight: .infinity)
+                    } else {
+                        ContentUnavailableView("正在加载邮件原文", systemImage: "envelope.open", description: Text("正在从 Outlook 获取完整邮件内容。"))
+                            .frame(maxWidth: .infinity, maxHeight: .infinity)
+                    }
                 }
-                    .navigationTitle(originalMail?.subject ?? "邮件原文")
-                    .toolbar { ToolbarItem(placement: .topBarTrailing) { Button("完成") { showingOriginalMail = false } } }
+                .navigationTitle(originalMail?.subject ?? "邮件原文")
+                .navigationBarTitleDisplayMode(.inline)
+                .toolbar { ToolbarItem(placement: .topBarTrailing) { Button("完成") { showingOriginalMail = false } } }
             }
         }
         .fullScreenCover(isPresented: $showingQRCode, onDismiss: restoreBrightness) {
