@@ -162,8 +162,8 @@ struct OrderDetailView: View {
         guard let raw = order.walletPassURL,
               let url = URL(string: raw),
               url.scheme?.lowercased() == "https",
-              let host = url.host?.lowercased(),
-              host == "apple.com" || host.hasSuffix(".apple.com") else { return nil }
+              url.host?.lowercased() == "storepass.apple.com",
+              url.path.lowercased().contains("/mpo/v2/apu/passcreator/") else { return nil }
         return url
     }
 
