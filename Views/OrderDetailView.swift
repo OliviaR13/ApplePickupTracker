@@ -28,7 +28,8 @@ struct OrderDetailView: View {
         ScrollView {
             VStack(alignment: .leading, spacing: TrackerTheme.Spacing.section) {
                 StorePhotoBanner(storeName: order.recognizedStoreName)
-                VStack(alignment: .leading, spacing: TrackerTheme.Spacing.section) {
+                LiquidGlassGroup(spacing: TrackerTheme.Spacing.section) {
+                    VStack(alignment: .leading, spacing: TrackerTheme.Spacing.section) {
                         statusHero
                         itemCard
                         detailsCard
@@ -47,6 +48,7 @@ struct OrderDetailView: View {
                             .liquidGlassButton()
                         }
                         liveActivityControls
+                    }
                 }
             }
             .padding(TrackerTheme.Spacing.screenInset)
