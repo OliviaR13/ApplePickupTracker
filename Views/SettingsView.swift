@@ -6,6 +6,7 @@ struct SettingsView: View {
     @EnvironmentObject private var oauth: OutlookOAuth
     @EnvironmentObject private var store: OrderStore
     let onSync: () async -> Void
+    let onClose: () -> Void
     @State private var isWorking = false
     @State private var message: String?
     @State private var activitiesEnabled = true
@@ -62,6 +63,15 @@ struct SettingsView: View {
         .tint(TrackerTheme.accent)
         .navigationTitle("设置")
         .navigationBarTitleDisplayMode(.large)
+        .toolbar {
+            ToolbarItem(placement: .topBarLeading) {
+                Button(action: onClose) {
+                    Image(systemName: "xmark")
+                        .font(.body.weight(.semibold))
+                }
+                .accessibilityLabel("关闭设置")
+            }
+        }
         .task {
             activitiesEnabled = ActivityAuthorizationInfo().areActivitiesEnabled
             runningCount = LiveActivityManager().runningCount
