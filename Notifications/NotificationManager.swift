@@ -12,13 +12,15 @@ final class NotificationManager {
     func notifyAlert(_ alert: OrderAlert, order: PickupOrder) async {
         let key = alert.id.hasPrefix("delay-") ? "notifications.delayed" : "notifications.exceptions"
         let enabled = UserDefaults.standard.object(forKey: key) as? Bool ?? true
-        guard enabled else { return }
+        let sentKey = "notifications.sent.\\(alert.id)"
+        guard enabled, !UserDefaults.standard.bool(forKey: sentKey) else { return }
         let content = UNMutableNotificationContent()
         content.title = alert.title
         content.body = "\(order.productName)：\(alert.detail)"
         content.sound = .default
         let request = UNNotificationRequest(identifier: "order-alert-\(alert.id)", content: content, trigger: nil)
         try? await UNUserNotificationCenter.current().add(request)
+        UserDefaults.standard.set(true, forKey: sentKey)
     }
 
     func notifyCompleted(order: PickupOrder) async {
