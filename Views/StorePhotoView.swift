@@ -146,15 +146,21 @@ struct StorePhotoBanner: View {
                         .transition(.opacity)
                 } else {
                     ZStack {
-                        LinearGradient(colors: [Color.blue.opacity(0.55), Color.cyan.opacity(0.35)], startPoint: .topLeading, endPoint: .bottomTrailing)
+                        LinearGradient(
+                            colors: [
+                                Color(uiColor: .secondarySystemGroupedBackground),
+                                Color(uiColor: .tertiarySystemGroupedBackground)
+                            ],
+                            startPoint: .topLeading,
+                            endPoint: .bottomTrailing
+                        )
                         VStack(spacing: 8) {
                             Image(systemName: resolved ? "building.2.fill" : "photo")
                                 .font(.largeTitle)
                             Text(resolved ? "暂无店面照片" : "正在查找店面")
                                 .font(.subheadline.weight(.semibold))
                         }
-                        .foregroundStyle(.white)
-                        .shadow(color: .black.opacity(0.25), radius: 4, y: 1)
+                        .foregroundStyle(.secondary)
                     }
                 }
             }
