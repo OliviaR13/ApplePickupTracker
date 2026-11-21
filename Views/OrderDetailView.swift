@@ -33,7 +33,6 @@ struct OrderDetailView: View {
                 LiquidGlassGroup(spacing: TrackerTheme.Spacing.section) {
                     VStack(alignment: .leading, spacing: TrackerTheme.Spacing.section) {
                         statusHero
-                        quickActionsCard
                         itemCard
                         detailsCard
                         if hasPickupAssets { pickupPassCard }
@@ -119,11 +118,32 @@ struct OrderDetailView: View {
         .toolbar {
             ToolbarItem(placement: .topBarTrailing) {
                 Menu {
+                    Button {
+                        UIPasteboard.general.string = order.orderNumber
+                        activityNote = "订单编号已复制"
+                    } label: {
+                        Label("复制订单号", systemImage: "doc.on.doc")
+                    }
+
+                    ShareLink(item: orderShareText) {
+                        Label("分享订单", systemImage: "square.and.arrow.up")
+                    }
+
+                    if order.status == .readyForPickup {
+                        Button {
+                            confirmingPickedUp = true
+                        } label: {
+                            Label("我已完成取货", systemImage: "checkmark.seal")
+                        }
+                    }
+
+                    Divider()
+
                     Button(role: .destructive) { confirmingRemove = true } label: {
                         Label("从列表移除", systemImage: "trash")
                     }
                 } label: { Image(systemName: "ellipsis") }
-                    .accessibilityLabel("更多")
+                    .accessibilityLabel("更多操作")
             }
         }
         .confirmationDialog("确认已取货？", isPresented: $confirmingPickedUp, titleVisibility: .visible) {
@@ -185,45 +205,6 @@ struct OrderDetailView: View {
             order.displayStoreAddress.map { "地址：\($0)" },
             "最后更新：\(order.lastUpdated.formatted(date: .long, time: .shortened))"
         ].compactMap { $0 }.joined(separator: "\n")
-    }
-
-    private var quickActionsCard: some View {
-        ContentCard {
-            VStack(alignment: .leading, spacing: 12) {
-                Label("快捷操作", systemImage: "bolt")
-                    .font(.headline)
-                // Keep Liquid Glass controls separated to prevent neighboring shapes from merging.
-                VStack(spacing: 16) {
-                    Button {
-                        UIPasteboard.general.string = order.orderNumber
-                        activityNote = "订单编号已复制"
-                    } label: {
-                        Label("复制订单号", systemImage: "doc.on.doc")
-                            .frame(maxWidth: .infinity, minHeight: 44)
-                    }
-                    .controlSize(.large)
-                    .liquidGlassButton()
-
-                    ShareLink(item: orderShareText) {
-                        Label("分享订单", systemImage: "square.and.arrow.up")
-                            .frame(maxWidth: .infinity, minHeight: 44)
-                    }
-                    .controlSize(.large)
-                    .liquidGlassButton()
-
-                    if order.status == .readyForPickup {
-                        Button {
-                            confirmingPickedUp = true
-                        } label: {
-                            Label("我已完成取货", systemImage: "checkmark.seal")
-                                .frame(maxWidth: .infinity, minHeight: 44)
-                        }
-                        .controlSize(.large)
-                        .liquidGlassProminentButton()
-                    }
-                }
-            }
-        }
     }
 
     private func markPickedUp() {
