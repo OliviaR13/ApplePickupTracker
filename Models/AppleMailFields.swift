@@ -163,7 +163,7 @@ extension AppleMailFields {
                         || lower.contains("问题") || lower.contains("questions") { break }
                     // Apple HK may concatenate the address, phone number and
                     // navigation links into one HTML text node. Split these fields.
-                    let phonePattern = #"(?<!\d)(?:\+?852[\s-]?)?\d{4}[\s-]?\d{4}(?!\d)"#
+                    let phonePattern = #"((?<!\d)(?:\+?852[\s-]?)?\d{4}[\s-]?\d{4}(?!\d))"#
                     if let phone = firstCapture(phonePattern, in: row) {
                         result.storePhone = normalizedPhone(phone)
                     } else if isPhoneLine(row) {
