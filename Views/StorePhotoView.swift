@@ -43,7 +43,8 @@ struct ProductThumbnailView: View {
     private var productURL: URL? {
         guard let imageURL, let url = URL(string: imageURL),
               url.scheme?.lowercased() == "https",
-              let host = url.host?.lowercased(), host.hasSuffix("apple.com"),
+              let host = url.host?.lowercased(),
+              host == "store.storeimages.cdn-apple.com" || host == "images.apple.com" || host.hasSuffix(".cdn-apple.com"),
               url.path.contains("/is/") else { return nil }
         return url
     }
