@@ -140,7 +140,8 @@ extension AppleMailFields {
         }
 
         result.subtotal = amount(afterAny: ["小计", "商品小计", "subtotal"], rows: rows, pattern: moneyPattern)
-        result.shippingFee = amount(afterAny: ["配送费", "送货费", "shipping", "delivery"], rows: rows, pattern: moneyPattern)
+            ?? result.productAmount
+        result.shippingFee = amount(afterAny: ["配送费", "送货费", "免费送货", "免费配送", "shipping", "delivery"], rows: rows, pattern: moneyPattern)
         result.totalAmount = amount(afterAny: ["订单总计", "订单总额", "订单合计", "order total", "total"], rows: rows, pattern: moneyPattern)
             ?? allMoney.last?.2
 
