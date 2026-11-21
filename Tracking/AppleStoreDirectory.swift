@@ -52,7 +52,8 @@ actor AppleStoreDirectory {
             || query.contains("shenzhenmixc")
             || query.contains("mixcshenzhen")
             || (query.contains("shenzhen") && query.contains("mixc"))
-        guard isShenzhenMixC, let imageURL = AppleStore.imageURL(storeID: "R761") else { return nil }
+        guard isShenzhenMixC,
+              let imageURL = URL(string: "https://www.apple.com/newsroom/images/environments/stores/Apple-Shenzhen-China-media-preview-storefront_Full-Bleed-Image.jpg.large.jpg") else { return nil }
         return AppleStore(id: "R761", name: "Apple MixC Shenzhen", city: "Shenzhen", imageURL: imageURL)
     }
 
