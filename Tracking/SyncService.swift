@@ -22,8 +22,8 @@ final class SyncService {
         UserDefaults.standard.removeObject(forKey: parserVersionKey)
     }
 
-    /// Foreground, background-refresh and manual syncs can overlap; only one may run at a time.
-    private var isRunning = false
+    /// Foreground, background-refresh and manual callers share one in-flight sync.
+    private var syncTask: Task<Void, Error>?
 
     /// Incremental sync: only look at mail since the last successful scan (3-day overlap).
     /// Falls back to a full scan on first run, when no orders are stored, or after a parser update.
@@ -36,9 +36,20 @@ final class SyncService {
     }
 
     func sync() async throws {
-        guard !isRunning else { return }
-        isRunning = true
-        defer { isRunning = false }
+        if let syncTask {
+            try await syncTask.value
+            return
+        }
+        let task = Task { [weak self] in
+            guard let self else { return }
+            defer { self.syncTask = nil }
+            try await self.performSync()
+        }
+        syncTask = task
+        try await task.value
+    }
+
+    private func performSync() async throws {
         let scanStartedAt = Date()
         let result = try await outlook.fetchAppleOrderMessages(since: scanStart())
         var newlyReadyOrderNumbers = Set<String>()
