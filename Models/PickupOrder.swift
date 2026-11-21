@@ -28,6 +28,10 @@ struct PickupOrder: Codable, Identifiable, Hashable {
     var alerts: [OrderAlert]? = nil
 
     mutating func apply(status newStatus: PickupStatus, at date: Date, sourceMessageID: String) {
+        if let eventIndex = history.firstIndex(where: { $0.status == newStatus && abs($0.date.timeIntervalSince(date)) < 2 }),
+           history[eventIndex].messageID == nil {
+            history[eventIndex].messageID = sourceMessageID
+        }
         guard date >= lastUpdated else { return }
         if newStatus < status && newStatus != .cancelled { return }
         guard newStatus != status else {
