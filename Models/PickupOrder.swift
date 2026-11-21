@@ -105,9 +105,20 @@ enum PickupStatus: String, Codable, CaseIterable, Comparable {
             || value.contains("已取消") || value.contains("訂單取消") || value.contains("订单取消") {
             return .cancelled
         }
+        // Apple's order-confirmation template can say "today available for pickup"
+        // while explicitly stating that it will notify the customer after preparation.
+        // Keep that message in processing until the separate ready-for-pickup email arrives.
+        if value.contains("wewillnotifyyouwhentheitemisready")
+            || value.contains("we'llnotifyyouwhentheitemisready")
+            || value.contains("商品備妥後通知你") || value.contains("商品备妥后通知你")
+            || value.contains("商品備好後通知你") || value.contains("商品备好后通知你") {
+            return .processing
+        }
         if value.contains("readyforpickup") || value.contains("youritemisready") || value.contains("readytopickup")
-            || value.contains("已備妥") || value.contains("可供於零售店營業時間內取貨")
-            || value.contains("已备妥") || value.contains("可供于零售店营业时间内取货")
+            || value.contains("已備妥") || value.contains("已备妥")
+            || value.contains("你的訂單已備好") || value.contains("你的订单已备好")
+            || value.contains("隨時可取") || value.contains("随时可取")
+            || value.contains("可供於零售店營業時間內取貨") || value.contains("可供于零售店营业时间内取货")
             || value.contains("可供取貨") || value.contains("可以取貨") || value.contains("可供取货") || value.contains("可以取货") {
             return .readyForPickup
         }
