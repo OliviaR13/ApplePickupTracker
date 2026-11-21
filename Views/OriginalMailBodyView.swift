@@ -9,8 +9,7 @@ struct OriginalMailBodyView: UIViewRepresentable {
     func makeCoordinator() -> Coordinator { Coordinator() }
 
     func makeUIView(context: Context) -> WKWebView {
-        let configuration = WKWebViewConfiguration()
-        let webView = WKWebView(frame: .zero, configuration: configuration)
+        let webView = WKWebView(frame: .zero, configuration: WKWebViewConfiguration())
         webView.navigationDelegate = context.coordinator
         webView.isOpaque = false
         webView.backgroundColor = .clear
@@ -97,8 +96,8 @@ struct OriginalMailBodyView: UIViewRepresentable {
             options: .regularExpression
         )
         html = html.replacingOccurrences(
-            of: #"(?i)href\s*=\s*(["'])\s*javascript:[^"']*\1"#,
-            with: #"href="#"#,
+            of: #"(?i)\s+href\s*=\s*["']\s*javascript:[^"']*["']"#,
+            with: "",
             options: .regularExpression
         )
         return html
