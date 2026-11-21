@@ -6,14 +6,14 @@ import UIKit
 extension PickupStatus {
     var tint: Color {
         switch self {
-        case .readyForPickup: .green
-        case .shippingToStore: .blue
-        case .processing: .orange
-        case .cancelled: .red
-        case .ordered: .indigo
-        case .pickedUp: .teal
-        case .completed: .green
-        case .unknown: .gray
+        case .readyForPickup: Color(uiColor: .systemGreen)
+        case .shippingToStore: Color(uiColor: .systemBlue)
+        case .processing: Color(uiColor: .systemOrange)
+        case .cancelled: Color(uiColor: .systemRed)
+        case .ordered: Color(uiColor: .systemIndigo)
+        case .pickedUp: Color(uiColor: .systemTeal)
+        case .completed: Color(uiColor: .systemGreen)
+        case .unknown: Color(uiColor: .systemGray)
         }
     }
 
