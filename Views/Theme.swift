@@ -52,19 +52,9 @@ struct StatusBadge: View {
 
 /// Warm neutral surfaces and a restrained teal accent, adapted from MyLoon's visual system.
 enum TrackerTheme {
-    static let background = Color(uiColor: UIColor { traits in
-        traits.userInterfaceStyle == .dark
-            ? UIColor(red: 18/255, green: 17/255, blue: 15/255, alpha: 1)
-            : UIColor(red: 246/255, green: 244/255, blue: 239/255, alpha: 1)
-    })
-    static let card = Color(uiColor: UIColor { traits in
-        traits.userInterfaceStyle == .dark
-            ? UIColor(red: 25/255, green: 24/255, blue: 21/255, alpha: 1)
-            : UIColor(red: 253/255, green: 252/255, blue: 249/255, alpha: 1)
-    })
-    static let accent = Color(uiColor: UIColor { traits in
-        traits.userInterfaceStyle == .dark
-            ? UIColor(red: 63/255, green: 207/255, blue: 166/255, alpha: 1)
-            : UIColor(red: 15/255, green: 127/255, blue: 105/255, alpha: 1)
-    })
+    // Use semantic UIKit colors so grouped surfaces and controls follow the
+    // active iOS appearance instead of maintaining a parallel custom palette.
+    static let background = Color(uiColor: .systemGroupedBackground)
+    static let card = Color(uiColor: .secondarySystemGroupedBackground)
+    static let accent = Color.accentColor
 }
