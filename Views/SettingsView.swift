@@ -40,7 +40,7 @@ struct SettingsView: View {
                 automationSection
                 notificationSection
                 securitySection
-                liveActivitySection
+                if extensionInstalled { liveActivitySection }
                 Section("同步") {
                     LabeledContent("上次同步", value: store.lastSync?.formatted(date: .abbreviated, time: .shortened) ?? "从未同步")
                     Text("iOS 会在系统资源允许时安排后台刷新，实际刷新时间由系统决定。").font(.footnote).foregroundStyle(.secondary)
@@ -134,7 +134,6 @@ struct SettingsView: View {
     private var liveActivitySection: some View {
         Section {
             diagnosticRow("系统允许实时活动", ok: activitiesEnabled)
-            diagnosticRow("锁屏 / 灵动岛扩展已安装", ok: extensionInstalled)
             LabeledContent("正在显示", value: "\(runningCount) 个")
             if !activitiesEnabled {
                 Button("打开系统设置") {
@@ -167,9 +166,6 @@ struct SettingsView: View {
     private var liveActivityFooter: String {
         if !activitiesEnabled {
             return "系统里关闭了本 App 的实时活动。请在系统设置中打开后再回来。"
-        }
-        if !extensionInstalled {
-            return "安装包里没有找到实时活动扩展，所以锁定屏幕和灵动岛不会显示。免费账号侧载时，签名工具可能会移除或无法签名 App 扩展，请在 AltStore / Sideloadly 中保留扩展后重新安装。"
         }
         if let restartNote { return restartNote }
         return "实时活动最长显示约 8 小时，没有推送服务时只会在打开 App 或后台刷新时更新。每次打开 App 同步都会自动重新启动。"
