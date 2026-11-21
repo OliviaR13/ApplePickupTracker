@@ -100,3 +100,144 @@ enum AppleMailFields {
         return hints.contains { lower.contains($0) }
     }
 }
+
+
+struct AppleOrderMetadata {
+    var quantity: Int?
+    var productAmount: Decimal?
+    var subtotal: Decimal?
+    var shippingFee: Decimal?
+    var totalAmount: Decimal?
+    var currencyCode: String?
+    var storeAddress: String?
+    var storePostalCode: String?
+    var storePhone: String?
+}
+
+extension AppleMailFields {
+    /// Extracts optional commercial and store fields from Apple's localized order emails.
+    /// Missing fields remain nil so a later email never erases previously parsed details.
+    static func orderMetadata(from text: String) -> AppleOrderMetadata {
+        let rows = lines(from: text)
+        var result = AppleOrderMetadata()
+
+        result.quantity = firstCapture(#"(?i)(?:数量|qty|quantity)\s*[:：]?\s*(\d{1,3})"#, in: text)
+            .flatMap(Int.init)
+
+        let moneyPattern = #"(?i)(RMB|CNY|HKD|USD|AUD|CAD|SGD|EUR|GBP|JPY|[$€£¥])\s*([0-9][0-9,]*(?:\.\d{1,2})?)"#
+        let allMoney = rows.enumerated().compactMap { index, line -> (Int, String, Decimal, String)? in
+            guard let match = firstMoney(in: line, pattern: moneyPattern) else { return nil }
+            return (index, match.currency, match.amount, line)
+        }
+        result.currencyCode = allMoney.first?.1
+
+        if let quantityIndex = rows.firstIndex(where: {
+            $0.range(of: #"(?i)(数量|qty|quantity)\s*[:：]?\s*\d+"#, options: .regularExpression) != nil
+        }), let itemMoney = allMoney.first(where: { $0.0 > quantityIndex }) {
+            result.productAmount = itemMoney.2
+        } else {
+            result.productAmount = allMoney.first?.2
+        }
+
+        result.subtotal = amount(afterAny: ["小计", "商品小计", "subtotal"], rows: rows, pattern: moneyPattern)
+        result.shippingFee = amount(afterAny: ["配送费", "送货费", "shipping", "delivery"], rows: rows, pattern: moneyPattern)
+        result.totalAmount = amount(afterAny: ["订单总计", "订单总额", "订单合计", "order total", "total"], rows: rows, pattern: moneyPattern)
+            ?? allMoney.last?.2
+
+        let storeLabels = ["取货零售店", "取貨零售店", "取货门店", "取貨門店", "取货地点", "取貨地點",
+                           "pickup location", "store pickup location"]
+        if let labelIndex = rows.firstIndex(where: { row in
+            storeLabels.contains(where: { row.localizedCaseInsensitiveContains($0) })
+        }) {
+            var addressRows: [String] = []
+            let start = labelIndex + 1
+            if start < rows.count {
+                for row in rows[start...] {
+                    let lower = row.lowercased()
+                    if lower.contains("营业时间") || lower.contains("營業時間")
+                        || lower.contains("opening hours") || lower.contains("store hours")
+                        || lower.contains("路线") || lower.contains("路線")
+                        || lower.contains("directions") || lower.contains("取货政策")
+                        || lower.contains("取貨政策") || lower.contains("pickup policy")
+                        || lower.contains("问题") || lower.contains("questions") { break }
+                    if isPhoneLine(row) {
+                        result.storePhone = normalizedPhone(row)
+                        break
+                    }
+                    if row == AppleMailFields.storeName(from: text) { continue }
+                    if row.range(of: #"\b\d{5,6}\b"#, options: .regularExpression) != nil {
+                        result.storePostalCode = firstCapture(#"\b(\d{5,6})\b"#, in: row)
+                    }
+                    if addressRows.count < 5 { addressRows.append(row) }
+                }
+            }
+            let address = addressRows.joined(separator: " ").trimmingCharacters(in: .whitespacesAndNewlines)
+            if !address.isEmpty { result.storeAddress = address }
+        }
+        if result.storePhone == nil,
+           let phoneRow = rows.first(where: isPhoneLine) {
+            result.storePhone = normalizedPhone(phoneRow)
+        }
+        if result.storePostalCode == nil,
+           let postal = firstCapture(#"(?m)^.*?\b(\d{5,6})\b.*$"#, in: text) {
+            result.storePostalCode = postal
+        }
+        return result
+    }
+
+    private static func amount(afterAny labels: [String], rows: [String], pattern: String) -> Decimal? {
+        for (index, row) in rows.enumerated() where labels.contains(where: {
+            row.localizedCaseInsensitiveContains($0)
+        }) {
+            let candidates = rows[index...].prefix(3)
+            for candidate in candidates {
+                if let money = firstMoney(in: candidate, pattern: pattern) { return money.amount }
+            }
+        }
+        return nil
+    }
+
+    private static func firstMoney(in text: String, pattern: String) -> (currency: String, amount: Decimal)? {
+        guard let currencyAndAmount = firstCaptureGroups(pattern, in: text), currencyAndAmount.count == 2 else { return nil }
+        let rawCurrency = currencyAndAmount[0]
+        let rawAmount = currencyAndAmount[1].replacingOccurrences(of: ",", with: "")
+        guard let amount = Decimal(string: rawAmount, locale: Locale(identifier: "en_US_POSIX")) else { return nil }
+        let currency: String
+        switch rawCurrency.uppercased() {
+        case "RMB", "CNY", "¥": currency = "CNY"
+        case "HKD": currency = "HKD"
+        case "USD", "$": currency = "USD"
+        case "AUD": currency = "AUD"
+        case "CAD": currency = "CAD"
+        case "SGD": currency = "SGD"
+        case "EUR", "€": currency = "EUR"
+        case "GBP", "£": currency = "GBP"
+        case "JPY": currency = "JPY"
+        default: currency = rawCurrency.uppercased()
+        }
+        return (currency, amount)
+    }
+
+    private static func firstCapture(_ pattern: String, in text: String) -> String? {
+        firstCaptureGroups(pattern, in: text)?.first
+    }
+
+    private static func firstCaptureGroups(_ pattern: String, in text: String) -> [String]? {
+        guard let regex = try? NSRegularExpression(pattern: pattern),
+              let match = regex.firstMatch(in: text, range: NSRange(text.startIndex..., in: text)) else { return nil }
+        return (1..<match.numberOfRanges).compactMap { index in
+            guard let range = Range(match.range(at: index), in: text) else { return nil }
+            return String(text[range])
+        }
+    }
+
+    private static func isPhoneLine(_ row: String) -> Bool {
+        let digits = row.filter(\.isNumber)
+        return digits.count >= 8 && digits.count <= 15
+            && (row.contains("+") || row.contains("-") || row.contains("(") || row.contains(")") || digits.count >= 10)
+    }
+
+    private static func normalizedPhone(_ row: String) -> String {
+        row.trimmingCharacters(in: .whitespacesAndNewlines)
+    }
+}
